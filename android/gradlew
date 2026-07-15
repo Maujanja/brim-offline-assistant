@@ -1,0 +1,4 @@
+#!/bin/sh
+# Minimal Gradle wrapper launcher. Run `gradle wrapper` locally to regenerate a full one.
+DIR="$(cd "$(dirname "$0")" && pwd)"
+exec gradle -p "$DIR" "$@"

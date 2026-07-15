@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Brim Voice Assistant</string>
+    <string name="listening">Ninasikiliza…</string>
+    <string name="idle">Sema "Hey Brim"</string>
+    <string name="start_service">Anzisha Msaidizi</string>
+    <string name="stop_service">Simamisha Msaidizi</string>
+    <string name="notif_channel">Brim Wake Word</string>
+    <string name="notif_title">Brim iko tayari</string>
+    <string name="notif_text">Ninasubiri "Hey Brim"…</string>
+</resources>
