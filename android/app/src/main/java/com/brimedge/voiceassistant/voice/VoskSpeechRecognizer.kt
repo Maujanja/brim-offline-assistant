@@ -64,9 +64,6 @@ class VoskSpeechRecognizer(private val context: Context) {
         }
         stopInternal()
         try {
-            val grammar = JSONObject().apply {
-                put("phrases", org.json.JSONArray(CommandParser.GRAMMAR + listOf("[unk]")))
-            }
             // Vosk grammar-mode recognizer: pass phrase list as JSON array string.
             val phraseArray = org.json.JSONArray(CommandParser.GRAMMAR + listOf("[unk]"))
             val recognizer = Recognizer(m, 16000.0f, phraseArray.toString())
