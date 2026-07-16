@@ -1,10 +1,30 @@
 <resources>
     <string name="app_name">Brim Voice Assistant</string>
-    <string name="listening">Ninasikiliza…</string>
-    <string name="idle">Sema "Hey Brim"</string>
-    <string name="start_service">Anzisha Msaidizi</string>
-    <string name="stop_service">Simamisha Msaidizi</string>
-    <string name="notif_channel">Brim Wake Word</string>
+    <string name="subtitle">Msaidizi wa sauti — offline</string>
+    <string name="mic_desc">Bonyeza kuongea</string>
+
+    <string name="status_ready">Tayari — bonyeza mic</string>
+    <string name="status_listening">Ninasikiliza…</string>
+    <string name="status_recognizing">Ninachambua…</string>
+    <string name="status_executing">Ninatekeleza…</string>
+    <string name="status_speaking">Ninajibu…</string>
+    <string name="status_loading_model">Napakia model…</string>
+    <string name="status_permissions_needed">Nipe ruhusa ya mic na kamera</string>
+    <string name="status_tts_missing">Weka Swahili TTS voice data</string>
+
+    <string name="hint_commands">Sema: washa tochi • zima tochi • fungua whatsapp • fungua kamera • saa ngapi</string>
+
+    <string name="reply_torch_on">Tochi imewashwa.</string>
+    <string name="reply_torch_off">Tochi imezimwa.</string>
+    <string name="reply_torch_missing">Simu hii haina tochi.</string>
+    <string name="reply_open_whatsapp">Ninafungua WhatsApp.</string>
+    <string name="reply_open_camera">Ninafungua Kamera.</string>
+    <string name="reply_whatsapp_missing">WhatsApp haijawekwa.</string>
+    <string name="reply_camera_missing">Sikuweza kufungua kamera.</string>
+    <string name="reply_not_understood">Samahani, sikuelewa.</string>
+    <string name="reply_unsupported">Amri hiyo bado haijatekelezwa.</string>
+
+    <string name="notif_channel">Brim Assistant</string>
     <string name="notif_title">Brim iko tayari</string>
-    <string name="notif_text">Ninasubiri "Hey Brim"…</string>
+    <string name="notif_text">Msaidizi wa sauti unaendesha</string>
 </resources>
