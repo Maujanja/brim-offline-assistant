@@ -26,15 +26,42 @@ jobs:
         working-directory: android
         run: gradle wrapper --gradle-version 8.7
 
+      - name: Generate release keystore
+        working-directory: android
+        run: |
+          keytool -genkeypair -v \
+            -keystore release.jks \
+            -alias brim \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass brimbrim -keypass brimbrim \
+            -dname "CN=Brim, OU=Dev, O=Brimedge, L=Dar, S=DSM, C=TZ"
+
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
       - name: Build Release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/android/release.jks
+          RELEASE_KEYSTORE_PASSWORD: brimbrim
+          RELEASE_KEY_ALIAS: brim
+          RELEASE_KEY_PASSWORD: brimbrim
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Upload APK artifact
+      - name: Collect APKs
+        working-directory: android
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/debug/*.apk out/ || true
+          cp app/build/outputs/apk/release/*.apk out/ || true
+          ls -lh out/
+
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: brim-voice-assistant
-          path: android/app/build/outputs/apk/release/*.apk
+          name: brim-voice-assistant-apks
+          path: android/out/*.apk
 
       - name: Create GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -42,6 +69,6 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: Brim Voice Assistant build ${{ github.run_number }}
-          files: android/app/build/outputs/apk/release/*.apk
+          files: android/out/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
