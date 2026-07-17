@@ -1,19 +1,36 @@
-# Vosk model directory
+# Vosk speech models
 
-The app looks for a Vosk model unpacked from `assets/model-sw/` (preferred) or
-`assets/model-en-us/` (fallback). Because Vosk models are large (40–500 MB) they
-are **not** committed to git. Download once and drop into the correct folder
-before building:
+**End users don't need to do anything.** The GitHub Actions workflow downloads
+the official Vosk English small model (`vosk-model-small-en-us-0.15`, ~40 MB)
+at build time and unpacks it into `assets/model-en/`. The resulting APK ships
+with the model bundled, so speech recognition works fully offline the moment
+the app is installed.
+
+## Layout
 
 ```
-# Small English model (~40 MB) — quickest to try
-curl -L -o /tmp/m.zip https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
-unzip /tmp/m.zip -d android/app/src/main/assets/
-mv android/app/src/main/assets/vosk-model-small-en-us-0.15 android/app/src/main/assets/model-en-us
+assets/
+  model-en/          <- English (downloaded by CI, git-ignored)
+  model-sw/          <- Swahili (Phase 2, add later)
+  model-<code>/      <- Future languages
 ```
 
-For Swahili, use any community Vosk model and place it under `assets/model-sw/`
-with the standard files (`am/`, `conf/`, `graph/`, `ivector/`).
+`LanguageManager` in `voice/` picks which folder to load from — the recognizer
+itself is language-agnostic. To add a new language later, drop a Vosk model
+under `assets/model-<code>/` (or extend the CI workflow to download it) and
+register a new `LanguageProfile` in `LanguageManager`.
 
-The APK still builds without a model — the app just shows "Model haijapatikana"
-until you add one.
+## Local builds
+
+If you build locally without CI, either:
+
+1. Run the download step yourself:
+   ```bash
+   curl -L -o /tmp/m.zip https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+   unzip /tmp/m.zip -d android/app/src/main/assets/
+   mv android/app/src/main/assets/vosk-model-small-en-us-0.15 android/app/src/main/assets/model-en
+   ```
+2. Or just push to `main` and let the workflow produce the APK.
+
+The APK still builds without a model — the app will simply report that the
+speech model is missing.

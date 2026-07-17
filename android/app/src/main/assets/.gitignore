@@ -1,0 +1,9 @@
+# Vosk speech models are downloaded automatically by the CI build
+# (see .github/workflows/android-build.yml) and packaged into the APK.
+# Keep them out of version control — they are large binary blobs.
+model-en/
+model-sw/
+model-*/
+!.gitignore
+!.gitkeep
+!README.md
