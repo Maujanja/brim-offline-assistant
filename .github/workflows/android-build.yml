@@ -26,6 +26,24 @@ jobs:
         working-directory: android
         run: gradle wrapper --gradle-version 8.7
 
+      - name: Download Vosk English speech model
+        working-directory: android
+        run: |
+          set -euxo pipefail
+          MODEL_URL="https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
+          DEST="app/src/main/assets/model-en"
+          if [ -f "$DEST/README" ] || [ -d "$DEST/am" ]; then
+            echo "Model already present, skipping download."
+          else
+            mkdir -p app/src/main/assets
+            curl -L --fail -o /tmp/vosk-en.zip "$MODEL_URL"
+            unzip -q /tmp/vosk-en.zip -d app/src/main/assets/
+            rm -rf "$DEST"
+            mv app/src/main/assets/vosk-model-small-en-us-0.15 "$DEST"
+            # Vosk on Android reads uncompressed assets; keep them raw.
+            du -sh "$DEST"
+          fi
+
       - name: Generate release keystore
         working-directory: android
         run: |
