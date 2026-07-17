@@ -17,6 +17,7 @@ import com.brimedge.voiceassistant.databinding.ActivityMainBinding
 import com.brimedge.voiceassistant.tts.SpeechManager
 import com.brimedge.voiceassistant.voice.Command
 import com.brimedge.voiceassistant.voice.CommandParser
+import com.brimedge.voiceassistant.voice.LanguageManager
 import com.brimedge.voiceassistant.voice.VoskSpeechRecognizer
 
 class MainActivity : AppCompatActivity() {
