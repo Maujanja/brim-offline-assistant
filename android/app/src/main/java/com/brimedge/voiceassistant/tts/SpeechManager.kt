@@ -3,12 +3,13 @@ package com.brimedge.voiceassistant.tts
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import com.brimedge.voiceassistant.voice.LanguageManager
 import java.util.Locale
 
 /**
- * Thin wrapper around Android's offline TextToSpeech engine.
- * Prefers Swahili; falls back to the default engine locale if Swahili voice data
- * is not installed on the device.
+ * Thin wrapper around Android's offline TextToSpeech engine. Locale is taken
+ * from the active [LanguageManager] profile so switching language switches
+ * both recognition and voice output.
  */
 class SpeechManager(context: Context) {
 
@@ -20,25 +21,20 @@ class SpeechManager(context: Context) {
 
     private var tts: TextToSpeech? = null
     private var ready = false
-    private var listener: Listener? = null
 
     fun initialize(context: Context, listener: Listener) {
-        this.listener = listener
         tts = TextToSpeech(context.applicationContext) { status ->
             if (status != TextToSpeech.SUCCESS) {
-                listener.onReady(false)
-                return@TextToSpeech
+                listener.onReady(false); return@TextToSpeech
             }
-            val swahili = Locale("sw", "TZ")
-            val result = tts?.setLanguage(swahili)
+            val preferred = LanguageManager.current().locale
+            val result = tts?.setLanguage(preferred)
             when (result) {
                 TextToSpeech.LANG_MISSING_DATA -> listener.onMissingVoiceData()
-                TextToSpeech.LANG_NOT_SUPPORTED -> {
-                    tts?.language = Locale.getDefault()
-                }
+                TextToSpeech.LANG_NOT_SUPPORTED -> { tts?.language = Locale.US }
                 else -> {}
             }
-            tts?.setSpeechRate(0.95f)
+            tts?.setSpeechRate(1.0f)
             tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {}
                 override fun onDone(utteranceId: String?) { listener.onDone() }

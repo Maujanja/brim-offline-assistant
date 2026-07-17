@@ -13,12 +13,10 @@ import org.vosk.android.StorageService
 import java.io.IOException
 
 /**
- * Offline speech recognition powered by Vosk.
- *
- * The caller must ship (or download) a Vosk model into the app's assets under
- * `assets/model-sw/` (or `assets/model-en-us/` as a fallback). Grammar mode is
- * used so only the Phase 1 phrases are recognized — this dramatically improves
- * accuracy on small models.
+ * Language-agnostic offline speech recognizer. The active [LanguageProfile]
+ * (from [LanguageManager]) decides which Vosk model to unpack from assets
+ * and which grammar to constrain recognition to. Adding a new language does
+ * NOT require editing this file.
  */
 class VoskSpeechRecognizer(private val context: Context) {
 
@@ -31,53 +29,66 @@ class VoskSpeechRecognizer(private val context: Context) {
     }
 
     private var model: Model? = null
+    private var loadedProfileCode: String? = null
     private var speechService: SpeechService? = null
     private var callback: Callback? = null
 
     fun initialize(callback: Callback) {
         this.callback = callback
         LibVosk.setLogLevel(LogLevel.WARNINGS)
+        loadActiveProfile()
+    }
 
-        // Try Swahili first, then fall back to English small model.
-        StorageService.unpack(context, "model-sw", "model",
-            { m -> onModelReady(m) },
-            { _ ->
-                StorageService.unpack(context, "model-en-us", "model",
-                    { m -> onModelReady(m) },
-                    { e ->
-                        callback.onError("Model haijapatikana. Weka Vosk model kwenye assets/model-sw au model-en-us. (${e.message})")
-                    }
+    private fun loadActiveProfile() {
+        val profile = LanguageManager.current()
+        val cb = callback ?: return
+        // Unpack from `assets/<modelAssetPath>/` into the app's private storage
+        // under the folder name "model-<code>". Vosk requires an unpacked
+        // directory on disk — assets stay compressed in the APK.
+        StorageService.unpack(
+            context,
+            profile.modelAssetPath,
+            "model-${profile.code}",
+            { m ->
+                model?.close()
+                model = m
+                loadedProfileCode = profile.code
+                cb.onReady()
+            },
+            { e ->
+                cb.onError(
+                    "Speech model for ${profile.displayName} could not be loaded. " +
+                            "Expected assets/${profile.modelAssetPath}/. (${e.message})"
                 )
             }
         )
     }
 
-    private fun onModelReady(m: Model) {
-        model = m
-        callback?.onReady()
-    }
-
     fun startListening() {
+        val cb = callback ?: return
+        // Reload the model if the active language changed while we were idle.
+        if (loadedProfileCode != LanguageManager.current().code) {
+            loadActiveProfile()
+            cb.onError("Language switched — reloading model, try again in a moment.")
+            return
+        }
         val m = model ?: run {
-            callback?.onError("Model bado haijawa tayari")
+            cb.onError("Speech model not ready yet")
             return
         }
         stopInternal()
         try {
-            // Vosk grammar-mode recognizer: pass phrase list as JSON array string.
-            val phraseArray = org.json.JSONArray(CommandParser.GRAMMAR + listOf("[unk]"))
+            val phraseArray = org.json.JSONArray(LanguageManager.current().grammar)
             val recognizer = Recognizer(m, 16000.0f, phraseArray.toString())
             val service = SpeechService(recognizer, 16000.0f)
             service.startListening(voskListener)
             speechService = service
         } catch (e: IOException) {
-            callback?.onError("Imeshindikana kuanza kusikiliza: ${e.message}")
+            cb.onError("Could not start listening: ${e.message}")
         }
     }
 
-    fun stopListening() {
-        stopInternal()
-    }
+    fun stopListening() { stopInternal() }
 
     private fun stopInternal() {
         speechService?.let {
@@ -91,6 +102,7 @@ class VoskSpeechRecognizer(private val context: Context) {
         stopInternal()
         model?.close()
         model = null
+        loadedProfileCode = null
     }
 
     private val voskListener = object : RecognitionListener {
@@ -98,31 +110,23 @@ class VoskSpeechRecognizer(private val context: Context) {
             val text = extract(hypothesis, "partial")
             if (!text.isNullOrBlank()) callback?.onPartial(text)
         }
-
         override fun onResult(hypothesis: String?) {
             val text = extract(hypothesis, "text")
             if (!text.isNullOrBlank()) callback?.onFinal(text)
         }
-
         override fun onFinalResult(hypothesis: String?) {
             val text = extract(hypothesis, "text")
             if (!text.isNullOrBlank()) callback?.onFinal(text)
         }
-
         override fun onError(exception: Exception?) {
-            callback?.onError(exception?.message ?: "Hitilafu ya kusikiliza")
+            callback?.onError(exception?.message ?: "Recognition error")
         }
-
-        override fun onTimeout() {
-            callback?.onTimeout()
-        }
+        override fun onTimeout() { callback?.onTimeout() }
     }
 
-    private fun extract(json: String?, key: String): String? {
-        return try {
-            if (json.isNullOrBlank()) null else JSONObject(json).optString(key, "").ifBlank { null }
-        } catch (e: Exception) {
-            Log.w("Vosk", "parse failed", e); null
-        }
+    private fun extract(json: String?, key: String): String? = try {
+        if (json.isNullOrBlank()) null else JSONObject(json).optString(key, "").ifBlank { null }
+    } catch (e: Exception) {
+        Log.w("Vosk", "parse failed", e); null
     }
 }

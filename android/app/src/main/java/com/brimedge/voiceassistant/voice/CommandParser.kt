@@ -1,10 +1,9 @@
 package com.brimedge.voiceassistant.voice
 
-import java.util.Locale
-
 /**
- * Parses raw Swahili transcripts into a strongly-typed [Command].
- * Extend by adding entries here and handling them in the executor.
+ * The set of high-level actions Brim can execute. New commands are added
+ * here and mapped per language in [LanguageManager]'s profiles — the parser
+ * itself stays language-agnostic.
  */
 sealed class Command {
     object TorchOn : Command()
@@ -16,27 +15,25 @@ sealed class Command {
     object Unknown : Command()
 }
 
+/**
+ * Language-agnostic transcript → [Command] resolver. Delegates to the
+ * patterns registered on the active [LanguageProfile].
+ */
 object CommandParser {
-
-    /** The complete recognizable vocabulary for Phase 1 (used as Vosk grammar). */
-    val GRAMMAR: List<String> = listOf(
-        "washa tochi",
-        "zima tochi",
-        "fungua whatsapp",
-        "fungua kamera",
-        "saa ngapi"
-    )
 
     fun parse(raw: String?): Command {
         if (raw.isNullOrBlank()) return Command.Unknown
-        val t = raw.lowercase(Locale.getDefault()).trim()
-        return when {
-            t.contains("washa") && t.contains("tochi") -> Command.TorchOn
-            t.contains("zima") && t.contains("tochi") -> Command.TorchOff
-            t.contains("fungua") && t.contains("whatsapp") -> Command.OpenWhatsApp
-            t.contains("fungua") && t.contains("kamera") -> Command.OpenCamera
-            t.contains("saa") && t.contains("ngapi") -> Command.CurrentTime
-            else -> Command.Unknown
+        val profile = LanguageManager.current()
+        val text = " " + raw.lowercase(profile.locale).trim() + " "
+
+        for (pattern in profile.patterns) {
+            if (pattern.requiredGroups.all { group ->
+                    group.any { needle -> text.contains(" $needle ") || text.contains(needle) }
+                }
+            ) {
+                return pattern.command
+            }
         }
+        return Command.Unknown
     }
 }
