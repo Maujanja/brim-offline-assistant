@@ -136,7 +136,7 @@ class MainActivity : AppCompatActivity() {
                 if (launcher.openCamera()) getString(R.string.reply_open_camera)
                 else getString(R.string.reply_camera_missing)
             }
-            Command.CurrentTime -> TimeController.currentTimeSpoken()
+            Command.CurrentTime -> TimeController.currentTimeSpoken(LanguageManager.current().locale)
             Command.Unsupported -> getString(R.string.reply_unsupported)
             Command.Unknown -> getString(R.string.reply_not_understood)
         }
