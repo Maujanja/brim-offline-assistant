@@ -90,8 +90,13 @@ jobs:
           mkdir -p out
           cp app/build/outputs/apk/debug/app-debug.apk out/Brim-Voice-Assistant-debug.apk
           cp app/build/outputs/apk/release/app-release.apk out/Brim-Voice-Assistant-release.apk
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          if [ -z "$APKSIGNER" ]; then
+            echo "apksigner not found in Android SDK build-tools"
+            exit 1
+          fi
           for apk in out/*.apk; do
-            apksigner verify --verbose --print-certs "$apk"
+            "$APKSIGNER" verify --verbose --print-certs "$apk"
           done
           ls -lh out/
 
