@@ -22,6 +22,13 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Restore CI signing keystore
+        id: signing-cache
+        uses: actions/cache@v4
+        with:
+          path: android/ci-release.jks
+          key: brim-voice-assistant-ci-keystore-v1
+
       - name: Generate Gradle wrapper
         working-directory: android
         run: gradle wrapper --gradle-version 8.7
@@ -44,24 +51,33 @@ jobs:
             du -sh "$DEST"
           fi
 
-      - name: Generate release keystore
+      - name: Prepare CI signing keystore
         working-directory: android
         run: |
-          keytool -genkeypair -v \
-            -keystore release.jks \
-            -alias brim \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass brimbrim -keypass brimbrim \
-            -dname "CN=Brim, OU=Dev, O=Brimedge, L=Dar, S=DSM, C=TZ"
+          set -euxo pipefail
+          if [ ! -f ci-release.jks ]; then
+            keytool -genkeypair -v \
+              -keystore ci-release.jks \
+              -alias brim \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass brimbrim -keypass brimbrim \
+              -dname "CN=Brim, OU=Dev, O=Brimedge, L=Dar, S=DSM, C=TZ"
+          fi
+          keytool -list -keystore ci-release.jks -storepass brimbrim -alias brim
 
       - name: Build Debug APK
         working-directory: android
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/android/ci-release.jks
+          RELEASE_KEYSTORE_PASSWORD: brimbrim
+          RELEASE_KEY_ALIAS: brim
+          RELEASE_KEY_PASSWORD: brimbrim
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Build Release APK
         working-directory: android
         env:
-          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/android/release.jks
+          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/android/ci-release.jks
           RELEASE_KEYSTORE_PASSWORD: brimbrim
           RELEASE_KEY_ALIAS: brim
           RELEASE_KEY_PASSWORD: brimbrim
@@ -70,9 +86,13 @@ jobs:
       - name: Collect APKs
         working-directory: android
         run: |
+          set -euxo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/debug/*.apk out/ || true
-          cp app/build/outputs/apk/release/*.apk out/ || true
+          cp app/build/outputs/apk/debug/app-debug.apk out/Brim-Voice-Assistant-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk out/Brim-Voice-Assistant-release.apk
+          for apk in out/*.apk; do
+            apksigner verify --verbose --print-certs "$apk"
+          done
           ls -lh out/
 
       - name: Upload APK artifacts

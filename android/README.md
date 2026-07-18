@@ -63,7 +63,7 @@ gradle wrapper --gradle-version 8.7   # first time
 ./gradlew assembleRelease             # app/build/outputs/apk/release/app-release.apk
 ```
 
-Requires JDK 17 and Android SDK (compileSdk 34, minSdk 24 → Android 7+).
+Requires JDK 17 and Android SDK (compileSdk 34, minSdk 23 → Android 6+).
 Verified against Android 10 – 14.
 
 ## CI
@@ -73,8 +73,9 @@ Verified against Android 10 – 14.
 
 - generates a fresh Gradle wrapper
 - downloads and unpacks the official Vosk English model into assets
-- generates a v1+v2+v3 signing keystore
+- restores a cached CI signing keystore, generating it once if needed
 - builds both `app-debug.apk` and `app-release.apk`
+- verifies APK signatures with `apksigner`
 - uploads them as `brim-voice-assistant-apks` and attaches them to a
   `build-<n>` GitHub Release
 
@@ -84,10 +85,13 @@ Verified against Android 10 – 14.
    the previous version first (Settings → Apps → Brim Voice Assistant).
 2. **Play Protect blocks unknown sources** — tap "Install anyway" or
    temporarily disable Play Protect scanning.
-3. **Downgrade** — CI uses `versionCode 2`+; uninstall older builds first.
+3. **Downgrade** — CI uses `versionCode 3`+; uninstall older builds first.
+4. **Older CI build had a different signature** — uninstall the old Brim Voice
+   Assistant once, then install the new APK. Future CI builds use the cached
+   signing key so updates install normally.
 
-Try `app-debug.apk` first — it uses the AGP debug keystore, which every
-Android device accepts.
+Try `Brim-Voice-Assistant-debug.apk` first. In CI, both debug and release APKs
+are signed with the same cached key so either one can update the other.
 
 ## Runtime requirements on the phone
 
