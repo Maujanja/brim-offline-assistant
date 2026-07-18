@@ -9,10 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "com.brimedge.voiceassistant"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
         ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") }
     }
 
@@ -24,6 +24,9 @@ android {
                 storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "brimbrim"
                 keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "brim"
                 keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "brimbrim"
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
@@ -39,6 +42,10 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            signingConfig = if (System.getenv("RELEASE_KEYSTORE_PATH").isNullOrBlank())
+                signingConfigs.getByName("debug")
+            else
+                signingConfigs.getByName("release")
         }
     }
 
@@ -48,6 +55,12 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { viewBinding = true }
+
+    splits {
+        abi {
+            isEnable = false
+        }
+    }
 
     packaging {
         resources {
