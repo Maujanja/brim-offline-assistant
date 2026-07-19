@@ -74,9 +74,11 @@ Verified against Android 10 – 14.
 - downloads and unpacks the official Vosk English model into assets
 - restores a cached CI signing keystore, generating it once if needed
 - builds one universal installable APK: `Brim-Voice-Assistant.apk`
-- verifies APK zip alignment and signatures before upload
+- verifies APK metadata, zip alignment and signatures before upload
 - uploads it as `Brim-Voice-Assistant-installable-apk` and attaches it to a
-  `build-<n>` GitHub Release
+  `build-<n>` GitHub Release. Downloading from **Releases** gives the APK file
+  directly; downloading from **Actions artifacts** gives a ZIP that must be
+  extracted first.
 
 ### If an APK refuses to install
 
@@ -84,7 +86,7 @@ Verified against Android 10 – 14.
    the previous version first (Settings → Apps → Brim Voice Assistant).
 2. **Play Protect blocks unknown sources** — tap "Install anyway" or
    temporarily disable Play Protect scanning.
-3. **Downgrade** — CI uses `versionCode 4`+; uninstall older builds first.
+3. **Downgrade** — CI uses `versionCode 10`+; uninstall older builds first.
 4. **Older CI build had a different signature** — uninstall the old Brim Voice
    Assistant once, then install the new APK. Future CI builds use the cached
    signing key so updates install normally.

@@ -29,10 +29,6 @@ jobs:
           path: android/ci-release.jks
           key: brim-voice-assistant-ci-keystore-v1
 
-      - name: Generate Gradle wrapper
-        working-directory: android
-        run: gradle wrapper --gradle-version 8.7
-
       - name: Download Vosk English speech model
         working-directory: android
         run: |
@@ -80,8 +76,18 @@ jobs:
           set -euxo pipefail
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk out/Brim-Voice-Assistant.apk
+          cat > out/README-INSTALL.txt <<'EOF'
+          INSTALLATION:
+          1. If you downloaded from GitHub Actions, extract the ZIP first.
+          2. Install the file named Brim-Voice-Assistant.apk inside it.
+          3. If Android says "App not installed", uninstall any old Brim Voice Assistant copy from all phone profiles, then install again.
+
+          EASIEST OPTION:
+          Open the GitHub Releases page and download Brim-Voice-Assistant.apk directly.
+          EOF
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -name zipalign -type f | sort -V | tail -n 1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n 1)"
           if [ -z "$APKSIGNER" ]; then
             echo "apksigner not found in Android SDK build-tools"
             exit 1
@@ -90,9 +96,14 @@ jobs:
             echo "zipalign not found in Android SDK build-tools"
             exit 1
           fi
+          if [ -z "$AAPT" ]; then
+            echo "aapt not found in Android SDK build-tools"
+            exit 1
+          fi
           for apk in out/*.apk; do
+            "$AAPT" dump badging "$apk" | tee "$apk.badging.txt"
             "$ZIPALIGN" -c -p 4 "$apk"
-            "$APKSIGNER" verify --verbose --print-certs "$apk"
+            "$APKSIGNER" verify --min-sdk-version 21 --verbose --print-certs "$apk"
             sha256sum "$apk" > "$apk.sha256"
           done
           ls -lh out/
@@ -104,15 +115,19 @@ jobs:
           path: |
             android/out/Brim-Voice-Assistant.apk
             android/out/Brim-Voice-Assistant.apk.sha256
+            android/out/Brim-Voice-Assistant.apk.badging.txt
+            android/out/README-INSTALL.txt
 
       - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: Brim Voice Assistant build ${{ github.run_number }}
+          make_latest: true
           files: |
             android/out/Brim-Voice-Assistant.apk
             android/out/Brim-Voice-Assistant.apk.sha256
+            android/out/Brim-Voice-Assistant.apk.badging.txt
+            android/out/README-INSTALL.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
