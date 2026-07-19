@@ -29,10 +29,6 @@ jobs:
           path: android/ci-release.jks
           key: brim-voice-assistant-ci-keystore-v1
 
-      - name: Generate Gradle wrapper
-        working-directory: android
-        run: gradle wrapper --gradle-version 8.7
-
       - name: Download Vosk English speech model
         working-directory: android
         run: |
