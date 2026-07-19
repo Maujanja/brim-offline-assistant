@@ -27,7 +27,6 @@ voice/          VoskSpeechRecognizer (language-agnostic)
 controllers/    FlashlightController, AppLauncher, TimeController
 tts/            SpeechManager (locale from LanguageManager)
 ui/             MainActivity + activity_main.xml
-service/        VoiceAssistantService (foreground, ready for wake-word phase)
 ```
 
 ### Multi-language design
@@ -63,7 +62,7 @@ gradle wrapper --gradle-version 8.7   # first time
 ./gradlew assembleRelease             # app/build/outputs/apk/release/app-release.apk
 ```
 
-Requires JDK 17 and Android SDK (compileSdk 34, minSdk 23 → Android 6+).
+Requires JDK 17 and Android SDK (compileSdk 34, minSdk 21 → Android 5+).
 Verified against Android 10 – 14.
 
 ## CI
@@ -74,9 +73,9 @@ Verified against Android 10 – 14.
 - generates a fresh Gradle wrapper
 - downloads and unpacks the official Vosk English model into assets
 - restores a cached CI signing keystore, generating it once if needed
-- builds both `app-debug.apk` and `app-release.apk`
-- verifies APK signatures with `apksigner`
-- uploads them as `brim-voice-assistant-apks` and attaches them to a
+- builds one universal installable APK: `Brim-Voice-Assistant.apk`
+- verifies APK zip alignment and signatures before upload
+- uploads it as `Brim-Voice-Assistant-installable-apk` and attaches it to a
   `build-<n>` GitHub Release
 
 ### If an APK refuses to install
@@ -85,17 +84,18 @@ Verified against Android 10 – 14.
    the previous version first (Settings → Apps → Brim Voice Assistant).
 2. **Play Protect blocks unknown sources** — tap "Install anyway" or
    temporarily disable Play Protect scanning.
-3. **Downgrade** — CI uses `versionCode 3`+; uninstall older builds first.
+3. **Downgrade** — CI uses `versionCode 4`+; uninstall older builds first.
 4. **Older CI build had a different signature** — uninstall the old Brim Voice
    Assistant once, then install the new APK. Future CI builds use the cached
    signing key so updates install normally.
 
-Try `Brim-Voice-Assistant-debug.apk` first. In CI, both debug and release APKs
-are signed with the same cached key so either one can update the other.
+Install only `Brim-Voice-Assistant.apk`. If you download from GitHub Actions,
+GitHub may give you a ZIP artifact first — extract it, then install the APK
+inside. The Releases page provides the APK directly.
 
 ## Runtime requirements on the phone
 
-- Android 7.0 (API 24) or newer (tested on Android 10, 11, 12, 13, 14)
+- Android 5.0 (API 21) or newer (tested on Android 10, 11, 12, 13, 14)
 - Microphone permission
 - Camera permission (for the flashlight)
 - A TextToSpeech voice — Android ships one by default; the app opens the

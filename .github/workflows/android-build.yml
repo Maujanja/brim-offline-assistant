@@ -65,16 +65,7 @@ jobs:
           fi
           keytool -list -keystore ci-release.jks -storepass brimbrim -alias brim
 
-      - name: Build Debug APK
-        working-directory: android
-        env:
-          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/android/ci-release.jks
-          RELEASE_KEYSTORE_PASSWORD: brimbrim
-          RELEASE_KEY_ALIAS: brim
-          RELEASE_KEY_PASSWORD: brimbrim
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Build Release APK
+      - name: Build installable APK
         working-directory: android
         env:
           RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/android/ci-release.jks
@@ -83,35 +74,45 @@ jobs:
           RELEASE_KEY_PASSWORD: brimbrim
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Collect APKs
+      - name: Collect and verify APK
         working-directory: android
         run: |
           set -euxo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/debug/app-debug.apk out/Brim-Voice-Assistant-debug.apk
-          cp app/build/outputs/apk/release/app-release.apk out/Brim-Voice-Assistant-release.apk
+          cp app/build/outputs/apk/release/app-release.apk out/Brim-Voice-Assistant.apk
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -name zipalign -type f | sort -V | tail -n 1)"
           if [ -z "$APKSIGNER" ]; then
             echo "apksigner not found in Android SDK build-tools"
             exit 1
           fi
+          if [ -z "$ZIPALIGN" ]; then
+            echo "zipalign not found in Android SDK build-tools"
+            exit 1
+          fi
           for apk in out/*.apk; do
+            "$ZIPALIGN" -c -p 4 "$apk"
             "$APKSIGNER" verify --verbose --print-certs "$apk"
+            sha256sum "$apk" > "$apk.sha256"
           done
           ls -lh out/
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: brim-voice-assistant-apks
-          path: android/out/*.apk
+          name: Brim-Voice-Assistant-installable-apk
+          path: |
+            android/out/Brim-Voice-Assistant.apk
+            android/out/Brim-Voice-Assistant.apk.sha256
 
       - name: Create GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: Brim Voice Assistant build ${{ github.run_number }}
-          files: android/out/*.apk
+          files: |
+            android/out/Brim-Voice-Assistant.apk
+            android/out/Brim-Voice-Assistant.apk.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

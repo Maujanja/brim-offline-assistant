@@ -9,10 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "com.brimedge.voiceassistant"
-        minSdk = 23
+        minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
         ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") }
     }
 
@@ -42,6 +42,7 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            matchingFallbacks += listOf("release")
             signingConfig = if (System.getenv("RELEASE_KEYSTORE_PATH").isNullOrBlank())
                 signingConfigs.getByName("debug")
             else

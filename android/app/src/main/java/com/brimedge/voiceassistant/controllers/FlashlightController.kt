@@ -3,6 +3,7 @@ package com.brimedge.voiceassistant.controllers
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.os.Build
 
 class FlashlightController(context: Context) {
 
@@ -12,6 +13,7 @@ class FlashlightController(context: Context) {
     }
 
     fun setEnabled(enabled: Boolean): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return false
         val id = cameraId ?: return false
         return try {
             cameraManager.setTorchMode(id, enabled)
