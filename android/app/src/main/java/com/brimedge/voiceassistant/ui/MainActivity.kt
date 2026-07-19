@@ -3,7 +3,6 @@ package com.brimedge.voiceassistant.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import androidx.appcompat.app.AppCompatActivity
@@ -31,13 +30,10 @@ class MainActivity : AppCompatActivity() {
     private var modelReady = false
     private var listening = false
 
-    private val requiredPermissions = mutableListOf(
+    private val requiredPermissions = arrayOf(
         Manifest.permission.RECORD_AUDIO,
         Manifest.permission.CAMERA
-    ).apply {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            add(Manifest.permission.POST_NOTIFICATIONS)
-    }.toTypedArray()
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
