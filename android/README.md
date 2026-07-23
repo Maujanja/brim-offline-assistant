@@ -63,7 +63,8 @@ gradle wrapper --gradle-version 8.7   # first time
 ```
 
 Requires JDK 17 and Android SDK (compileSdk 34, minSdk 21 → Android 5+).
-Verified against Android 10 – 14.
+The APK now uses 16 KB-safe Android packaging checks for newer Android 15+
+phones while still supporting Android 5+.
 
 ## CI
 
@@ -74,7 +75,8 @@ Verified against Android 10 – 14.
 - downloads and unpacks the official Vosk English model into assets
 - restores a cached CI signing keystore, generating it once if needed
 - builds one universal installable APK: `Brim-Voice-Assistant.apk`
-- verifies APK metadata, zip alignment and signatures before upload
+- verifies APK metadata, 16 KB native-library zip alignment, ELF alignment and
+  signatures before upload
 - uploads it as `Brim-Voice-Assistant-installable-apk` and attaches it to a
   `build-<n>` GitHub Release. Downloading from **Releases** gives the APK file
   directly; downloading from **Actions artifacts** gives a ZIP that must be
@@ -90,6 +92,9 @@ Verified against Android 10 – 14.
 4. **Older CI build had a different signature** — uninstall the old Brim Voice
    Assistant once, then install the new APK. Future CI builds use the cached
    signing key so updates install normally.
+5. **Android 15 native-library rejection** — use build `1.0.5` / `versionCode 20`
+   or newer. Older builds used a Vosk native library that was not 16 KB aligned
+   on 64-bit Android 15 devices and could fail at the installer stage.
 
 Install only `Brim-Voice-Assistant.apk`. If you download from GitHub Actions,
 GitHub may give you a ZIP artifact first — extract it, then install the APK

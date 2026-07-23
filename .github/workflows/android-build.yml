@@ -22,6 +22,9 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android build tools for APK validation
+        run: sdkmanager "build-tools;35.0.0"
+
       - name: Restore CI signing keystore
         id: signing-cache
         uses: actions/cache@v4
@@ -102,10 +105,34 @@ jobs:
           fi
           for apk in out/*.apk; do
             "$AAPT" dump badging "$apk" | tee "$apk.badging.txt"
-            "$ZIPALIGN" -c -p 4 "$apk"
+            "$ZIPALIGN" -c -P 16 -v 4 "$apk" | tee "$apk.zipalign.txt"
             "$APKSIGNER" verify --min-sdk-version 21 --verbose --print-certs "$apk"
             sha256sum "$apk" > "$apk.sha256"
           done
+
+          WORKDIR="$(mktemp -d)"
+          unzip -q out/Brim-Voice-Assistant.apk -d "$WORKDIR/apk"
+          bad_alignment=0
+          while IFS= read -r so; do
+            abi="$(basename "$(dirname "$so")")"
+            case "$abi" in
+              arm64-v8a)
+                if readelf -l "$so" | awk '/LOAD/ { getline; if ($NF != "0x4000" && $NF != "0x10000") bad=1 } END { exit bad }'; then
+                  echo "16KB ELF alignment OK: $so"
+                else
+                  echo "ERROR: $so is not 16KB ELF-aligned for Android 15+ devices"
+                  bad_alignment=1
+                fi
+                ;;
+              *)
+                echo "ELF alignment check skipped for 32-bit ABI: $so"
+                ;;
+            esac
+          done < <(find "$WORKDIR/apk/lib" -name '*.so' -type f | sort)
+          rm -rf "$WORKDIR"
+          if [ "$bad_alignment" -ne 0 ]; then
+            exit 1
+          fi
           ls -lh out/
 
       - name: Upload APK artifacts
@@ -116,6 +143,7 @@ jobs:
             android/out/Brim-Voice-Assistant.apk
             android/out/Brim-Voice-Assistant.apk.sha256
             android/out/Brim-Voice-Assistant.apk.badging.txt
+            android/out/Brim-Voice-Assistant.apk.zipalign.txt
             android/out/README-INSTALL.txt
 
       - name: Create GitHub Release
@@ -128,6 +156,7 @@ jobs:
             android/out/Brim-Voice-Assistant.apk
             android/out/Brim-Voice-Assistant.apk.sha256
             android/out/Brim-Voice-Assistant.apk.badging.txt
+            android/out/Brim-Voice-Assistant.apk.zipalign.txt
             android/out/README-INSTALL.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

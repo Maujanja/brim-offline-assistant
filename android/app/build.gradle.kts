@@ -11,9 +11,9 @@ android {
         applicationId = "com.brimedge.voiceassistant"
         minSdk = 21
         targetSdk = 34
-        versionCode = 10
-        versionName = "1.0.4"
-        ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") }
+        versionCode = 20
+        versionName = "1.0.5"
+        ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
     }
 
     signingConfigs {
@@ -82,6 +82,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
 
     // Vosk offline speech recognition
-    implementation("com.alphacephei:vosk-android:0.3.47@aar")
-    implementation("net.java.dev.jna:jna:5.13.0@aar")
+    implementation("com.alphacephei:vosk-android:0.3.75@aar")
+    implementation("net.java.dev.jna:jna:5.17.0@aar")
 }
