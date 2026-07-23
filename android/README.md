@@ -71,7 +71,6 @@ phones while still supporting Android 5+.
 `.github/workflows/android-build.yml` on every push to `main` and on
 `workflow_dispatch`:
 
-- generates a fresh Gradle wrapper
 - downloads and unpacks the official Vosk English model into assets
 - restores a cached CI signing keystore, generating it once if needed
 - builds one universal installable APK: `Brim-Voice-Assistant.apk`
@@ -88,7 +87,7 @@ phones while still supporting Android 5+.
    the previous version first (Settings → Apps → Brim Voice Assistant).
 2. **Play Protect blocks unknown sources** — tap "Install anyway" or
    temporarily disable Play Protect scanning.
-3. **Downgrade** — CI uses `versionCode 10`+; uninstall older builds first.
+3. **Downgrade** — CI uses `versionCode 20`+; uninstall older builds first.
 4. **Older CI build had a different signature** — uninstall the old Brim Voice
    Assistant once, then install the new APK. Future CI builds use the cached
    signing key so updates install normally.
