@@ -73,7 +73,11 @@ phones while still supporting Android 5+.
 
 - downloads and unpacks the official Vosk English model into assets
 - restores a cached CI signing keystore, generating it once if needed
-- builds one universal installable APK: `Brim-Voice-Assistant.apk`
+- builds two universal installable APKs:
+  - `Brim-Voice-Assistant.apk` — official package `com.brimedge.voiceassistant`
+  - `Brim-Voice-Assistant-Clean-Install.apk` — fallback package
+    `com.brimedge.voiceassistant.clean` for phones blocked by old test-build
+    signature conflicts
 - verifies APK metadata, 16 KB native-library zip alignment, ELF alignment and
   signatures before upload
 - uploads it as `Brim-Voice-Assistant-installable-apk` and attaches it to a
@@ -87,17 +91,20 @@ phones while still supporting Android 5+.
    the previous version first (Settings → Apps → Brim Voice Assistant).
 2. **Play Protect blocks unknown sources** — tap "Install anyway" or
    temporarily disable Play Protect scanning.
-3. **Downgrade** — CI uses `versionCode 20`+; uninstall older builds first.
+3. **Downgrade** — CI uses `versionCode 30`+; uninstall older builds first.
 4. **Older CI build had a different signature** — uninstall the old Brim Voice
-   Assistant once, then install the new APK. Future CI builds use the cached
-   signing key so updates install normally.
+   Assistant once, then install the new APK. If Android still refuses because
+   an old copy is hidden in another user/profile, install
+   `Brim-Voice-Assistant-Clean-Install.apk`; it uses a fresh package name and
+   bypasses that signature conflict.
 5. **Android 15 native-library rejection** — use build `1.0.5` / `versionCode 20`
    or newer. Older builds used a Vosk native library that was not 16 KB aligned
    on 64-bit Android 15 devices and could fail at the installer stage.
 
-Install only `Brim-Voice-Assistant.apk`. If you download from GitHub Actions,
-GitHub may give you a ZIP artifact first — extract it, then install the APK
-inside. The Releases page provides the APK directly.
+Install `Brim-Voice-Assistant.apk` first. If it still says "App not installed",
+install `Brim-Voice-Assistant-Clean-Install.apk`. If you download from GitHub
+Actions, GitHub may give you a ZIP artifact first — extract it, then install the
+APK inside. The Releases page provides the APK files directly.
 
 ## Runtime requirements on the phone
 

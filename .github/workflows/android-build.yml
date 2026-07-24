@@ -64,29 +64,32 @@ jobs:
           fi
           keytool -list -keystore ci-release.jks -storepass brimbrim -alias brim
 
-      - name: Build installable APK
+      - name: Build installable APKs
         working-directory: android
         env:
           RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/android/ci-release.jks
           RELEASE_KEYSTORE_PASSWORD: brimbrim
           RELEASE_KEY_ALIAS: brim
           RELEASE_KEY_PASSWORD: brimbrim
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleStandardRelease assembleCleanRelease --no-daemon --stacktrace
 
       - name: Collect and verify APK
         working-directory: android
         run: |
           set -euxo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/release/app-release.apk out/Brim-Voice-Assistant.apk
+          cp app/build/outputs/apk/standard/release/app-standard-release.apk out/Brim-Voice-Assistant.apk
+          cp app/build/outputs/apk/clean/release/app-clean-release.apk out/Brim-Voice-Assistant-Clean-Install.apk
           cat > out/README-INSTALL.txt <<'EOF'
           INSTALLATION:
           1. If you downloaded from GitHub Actions, extract the ZIP first.
-          2. Install the file named Brim-Voice-Assistant.apk inside it.
-          3. If Android says "App not installed", uninstall any old Brim Voice Assistant copy from all phone profiles, then install again.
+          2. First try Brim-Voice-Assistant.apk.
+          3. If Android says "App not installed", your phone is probably blocking an update because an older test build with the same package name was signed differently.
+          4. Then install Brim-Voice-Assistant-Clean-Install.apk. It uses a fresh package name and bypasses old signature conflicts.
+          5. Later, uninstall any old Brim Voice Assistant copy from all phone profiles before returning to Brim-Voice-Assistant.apk.
 
           EASIEST OPTION:
-          Open the GitHub Releases page and download Brim-Voice-Assistant.apk directly.
+          Open the GitHub Releases page and download Brim-Voice-Assistant-Clean-Install.apk if the normal APK refuses to install.
           EOF
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -name zipalign -type f | sort -V | tail -n 1)"
@@ -111,24 +114,27 @@ jobs:
           done
 
           WORKDIR="$(mktemp -d)"
-          unzip -q out/Brim-Voice-Assistant.apk -d "$WORKDIR/apk"
           bad_alignment=0
-          while IFS= read -r so; do
-            abi="$(basename "$(dirname "$so")")"
-            case "$abi" in
-              arm64-v8a)
-                if readelf -l "$so" | awk '/LOAD/ { getline; if ($NF != "0x4000" && $NF != "0x10000") bad=1 } END { exit bad }'; then
-                  echo "16KB ELF alignment OK: $so"
-                else
-                  echo "ERROR: $so is not 16KB ELF-aligned for Android 15+ devices"
-                  bad_alignment=1
-                fi
-                ;;
-              *)
-                echo "ELF alignment check skipped for 32-bit ABI: $so"
-                ;;
-            esac
-          done < <(find "$WORKDIR/apk/lib" -name '*.so' -type f | sort)
+          for apk in out/*.apk; do
+            apk_dir="$WORKDIR/$(basename "$apk" .apk)"
+            unzip -q "$apk" -d "$apk_dir"
+            while IFS= read -r so; do
+              abi="$(basename "$(dirname "$so")")"
+              case "$abi" in
+                arm64-v8a)
+                  if readelf -l "$so" | awk '/LOAD/ { getline; if ($NF != "0x4000" && $NF != "0x10000") bad=1 } END { exit bad }'; then
+                    echo "16KB ELF alignment OK: $so"
+                  else
+                    echo "ERROR: $so is not 16KB ELF-aligned for Android 15+ devices"
+                    bad_alignment=1
+                  fi
+                  ;;
+                *)
+                  echo "ELF alignment check skipped for 32-bit ABI: $so"
+                  ;;
+              esac
+            done < <(find "$apk_dir/lib" -name '*.so' -type f | sort)
+          done
           rm -rf "$WORKDIR"
           if [ "$bad_alignment" -ne 0 ]; then
             exit 1
@@ -141,9 +147,13 @@ jobs:
           name: Brim-Voice-Assistant-installable-apk
           path: |
             android/out/Brim-Voice-Assistant.apk
+            android/out/Brim-Voice-Assistant-Clean-Install.apk
             android/out/Brim-Voice-Assistant.apk.sha256
+            android/out/Brim-Voice-Assistant-Clean-Install.apk.sha256
             android/out/Brim-Voice-Assistant.apk.badging.txt
+            android/out/Brim-Voice-Assistant-Clean-Install.apk.badging.txt
             android/out/Brim-Voice-Assistant.apk.zipalign.txt
+            android/out/Brim-Voice-Assistant-Clean-Install.apk.zipalign.txt
             android/out/README-INSTALL.txt
 
       - name: Create GitHub Release
@@ -154,9 +164,13 @@ jobs:
           make_latest: true
           files: |
             android/out/Brim-Voice-Assistant.apk
+            android/out/Brim-Voice-Assistant-Clean-Install.apk
             android/out/Brim-Voice-Assistant.apk.sha256
+            android/out/Brim-Voice-Assistant-Clean-Install.apk.sha256
             android/out/Brim-Voice-Assistant.apk.badging.txt
+            android/out/Brim-Voice-Assistant-Clean-Install.apk.badging.txt
             android/out/Brim-Voice-Assistant.apk.zipalign.txt
+            android/out/Brim-Voice-Assistant-Clean-Install.apk.zipalign.txt
             android/out/README-INSTALL.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
