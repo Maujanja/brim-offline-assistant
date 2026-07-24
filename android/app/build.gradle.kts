@@ -11,9 +11,21 @@ android {
         applicationId = "com.brimedge.voiceassistant"
         minSdk = 21
         targetSdk = 34
-        versionCode = 20
-        versionName = "1.0.5"
+        versionCode = 30
+        versionName = "1.0.6"
         ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
+    }
+
+    flavorDimensions += "installTrack"
+    productFlavors {
+        create("standard") {
+            dimension = "installTrack"
+        }
+        create("clean") {
+            dimension = "installTrack"
+            applicationIdSuffix = ".clean"
+            versionNameSuffix = "-clean"
+        }
     }
 
     signingConfigs {
