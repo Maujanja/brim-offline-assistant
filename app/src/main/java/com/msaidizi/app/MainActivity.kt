@@ -76,6 +76,15 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        findViewById<Button>(R.id.autoTapBtn).setOnClickListener {
+            toast(getString(R.string.auto_tap_hint))
+            try {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            } catch (e: ActivityNotFoundException) {
+                toast(getString(R.string.overlay_missing))
+            }
+        }
+
         findViewById<Button>(R.id.overlayBtn).setOnClickListener {
             try {
                 startActivity(
@@ -97,7 +106,12 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.READ_CONTACTS,
             Manifest.permission.CALL_PHONE
         )
-        if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
+        if (Build.VERSION.SDK_INT >= 33) {
+            perms += Manifest.permission.POST_NOTIFICATIONS
+            perms += Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            perms += Manifest.permission.READ_EXTERNAL_STORAGE
+        }
         return perms.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }

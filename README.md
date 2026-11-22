@@ -23,6 +23,10 @@ Vifungu vya maneno mawili vinapunguza makosa. Neno la Kiswahili (mfano "msaidizi
 |---|---|
 | washa / zima tochi | Tochi inawaka / inazima |
 | volume juu / chini / kimya | Inabadilisha sauti |
+| cheza wimbo wa diamond / cheza muziki | Inacheza muziki kwenye simu kwa jina (au nasibu) |
+| wimbo unaofuata / simamisha / endelea / acha muziki | Udhibiti wa muziki |
+| zima simu / funga simu | Inafunga skrini (lock) |
+| washa data sim 1 / sim 2 | Inafungua paneli ya data |
 | saa ngapi | Inasema muda |
 | fungua kamera (au "video") | Inafungua kamera* |
 | fungua wifi / bluetooth | Inafungua mipangilio* |

@@ -28,6 +28,8 @@ import java.util.Locale
 /** Hutafsiri maneno ya amri kuwa vitendo vya simu. Ongeza amri mpya ndani ya execute(). */
 class CommandHandler(private val ctx: Context) {
 
+    val music = MusicPlayer(ctx)
+
     private val cameraManager = ctx.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     private val audio = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -58,6 +60,7 @@ class CommandHandler(private val ctx: Context) {
     }
 
     fun shutdown() {
+        music.release()
         tts.stop()
         tts.shutdown()
     }
@@ -68,6 +71,13 @@ class CommandHandler(private val ctx: Context) {
         val t = raw.lowercase(Locale.ROOT).trim()
         val reply: String = try {
             when {
+                // Muziki: kucheza wimbo uliopo kwenye simu kwa jina
+                has(t, "cheza", "play") && !has(t, "fungua", "open", "store") -> music.play(songName(t))
+                has(t, "simamisha", "pause", "nyamaza") -> music.pause()
+                has(t, "endelea", "resume", "continue") -> music.resume()
+                has(t, "unaofuata", "ifuatayo", "wimbo mwingine", "badili wimbo", "next", "skip") -> music.next()
+                has(t, "acha muziki", "zima muziki", "stop music", "stop the music", "acha wimbo", "zima wimbo") -> music.stop()
+
                 // Tochi
                 has(t, "tochi", "flashlight", "torch", "flash") ->
                     setTorch(!has(t, "zima", "zimisha", "funga", "off", "close"))
@@ -144,6 +154,12 @@ class CommandHandler(private val ctx: Context) {
         audio.setStreamVolume(AudioManager.STREAM_MUSIC, 0, AudioManager.FLAG_SHOW_UI)
         return "Sauti imenyamazishwa"
     }
+
+    /** "cheza wimbo wa diamond" -> "diamond". Tupu = cheza chochote. */
+    private fun songName(t: String): String =
+        t.replace(Regex("\\b(cheza|play|wimbo|nyimbo|song|songs|music|muziki|audio|wa|ya|kwa|the|by|by the|some|a|me)\\b"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
 
     private fun lockPhone(): String {
         val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
@@ -316,8 +332,8 @@ class CommandHandler(private val ctx: Context) {
         return false
     }
 
-    private companion object {
-        const val ACTION_CHANNEL = "msaidizi_actions"
+    companion object {
+        private const val ACTION_CHANNEL = "msaidizi_actions"
         const val ACTION_NOTIF_ID = 2
     }
 }

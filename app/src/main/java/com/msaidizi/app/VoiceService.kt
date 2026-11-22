@@ -159,6 +159,7 @@ class VoiceService : Service() {
         if (busy || destroyed) return
         busy = true
         stopWakeListening()           // achia maikrofoni kwa SpeechRecognizer
+        commands.music.pauseForCommand()
         beep()
         handler.postDelayed({ listenForCommand() }, 250)
         // Ulinzi: kama hakuna kinachotokea, rudi kusikiliza wake word.
@@ -170,6 +171,7 @@ class VoiceService : Service() {
         recognizer?.destroy()
         recognizer = null
         busy = false
+        commands.music.resumeAfterCommand()
         if (!destroyed) startWakeListening()
     }
 

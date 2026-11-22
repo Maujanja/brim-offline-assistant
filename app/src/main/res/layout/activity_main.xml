@@ -77,6 +77,12 @@
             android:text="@string/overlay" />
 
         <Button
+            android:id="@+id/autoTapBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/auto_tap" />
+
+        <Button
             android:id="@+id/lockBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
