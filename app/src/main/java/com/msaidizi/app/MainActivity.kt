@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
 
             // Anzisha upya ili mipangilio mipya ichukuliwe
             startService(Intent(this, VoiceService::class.java).setAction(VoiceService.ACTION_STOP))
-            if (micGranted()) startVoiceService() else requestPerms()
+            if (missingPerms().isEmpty()) startVoiceService() else requestPerms()
         }
 
         findViewById<Button>(R.id.stopBtn).setOnClickListener {
@@ -80,10 +80,20 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
 
-    private fun requestPerms() {
-        val perms = mutableListOf(Manifest.permission.RECORD_AUDIO)
+    private fun missingPerms(): List<String> {
+        val perms = mutableListOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.CALL_PHONE
+        )
         if (Build.VERSION.SDK_INT >= 33) perms += Manifest.permission.POST_NOTIFICATIONS
-        permLauncher.launch(perms.toTypedArray())
+        return perms.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestPerms() {
+        permLauncher.launch(missingPerms().toTypedArray())
     }
 
     private fun startVoiceService() {

@@ -26,7 +26,7 @@ Vifungu vya maneno mawili vinapunguza makosa. Neno la Kiswahili (mfano "msaidizi
 | saa ngapi | Inasema muda |
 | fungua kamera (au "video") | Inafungua kamera* |
 | fungua wifi / bluetooth | Inafungua mipangilio* |
-| piga 0712345678 | Inafungua dialer na namba* |
+| piga mama / piga 0712345678 | Inapiga kwa jina la anwani (phonebook) au kwa namba* |
 | fungua WhatsApp (app yoyote) | Inafungua app kwa jina* |
 
 \* Android 10+ hairuhusu app ya nyuma kufungua skrini. Ukiwa na "Display over other apps" inafunguka yenyewe.

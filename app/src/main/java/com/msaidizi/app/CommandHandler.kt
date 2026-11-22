@@ -1,5 +1,6 @@
 package com.msaidizi.app
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -9,11 +10,15 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.media.AudioManager
 import android.net.Uri
+import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.ContactsContract
 import android.provider.MediaStore
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import java.text.Normalizer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -82,7 +87,7 @@ class CommandHandler(private val ctx: Context) {
                 // Muda
                 has(t, "saa ngapi", "muda", "what time", "time is it") -> tellTime()
 
-                // Kupiga simu (inafungua dialer na namba, mtumiaji anabonyeza kupiga)
+                // Kupiga simu kwa namba au kwa jina kutoka phonebook
                 has(t, "piga", "call", "dial") -> dial(t)
 
                 // Kufungua app yoyote kwa jina
@@ -145,10 +150,79 @@ class CommandHandler(private val ctx: Context) {
         return "Saa ni $now"
     }
 
+    /** "piga 0712345678" au "piga mama" (jina kutoka phonebook). */
     private fun dial(t: String): String {
-        val number = t.filter { it.isDigit() || it == '+' }
-        if (number.length < 3) return "Sema namba ya simu, mfano piga 0712345678"
-        return opened(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")), "simu kwa namba $number")
+        val digits = t.filter { it.isDigit() || it == '+' }
+        if (digits.count { it.isDigit() } >= 7) return placeCall(digits, digits)
+
+        val name = t
+            .replace(Regex("\\b(piga|simu|kwa|call|dial|to|namba|ya|kwenye)\\b"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (name.isEmpty()) return "Sema jina la mtu au namba, mfano piga mama"
+
+        if (!granted(Manifest.permission.READ_CONTACTS)) {
+            return "Ruhusu anwani za simu ndani ya app ili nipige kwa jina"
+        }
+        val match = findContact(name) ?: return "Sijapata $name kwenye anwani zako"
+        return placeCall(match.second, match.first)
+    }
+
+    private fun placeCall(number: String, label: String): String {
+        val action = if (granted(Manifest.permission.CALL_PHONE)) Intent.ACTION_CALL else Intent.ACTION_DIAL
+        return opened(Intent(action, Uri.parse("tel:${Uri.encode(number)}")), "simu kwa $label")
+    }
+
+    private fun granted(permission: String) =
+        ContextCompat.checkSelfPermission(ctx, permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun normalize(text: String): String =
+        Normalizer.normalize(text, Normalizer.Form.NFD)
+            .replace(Regex("\\p{M}+"), "")
+            .lowercase(Locale.ROOT)
+            .replace(Regex("[^a-z0-9 ]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+
+    /** Inatafuta jina lililo karibu zaidi: sawa kabisa > linaanza na > lina neno lote > lina baadhi ya maneno. */
+    private fun findContact(spoken: String): Pair<String, String>? {
+        val query = normalize(spoken)
+        if (query.isEmpty()) return null
+        val words = query.split(" ")
+        var best: Pair<String, String>? = null
+        var bestScore = 0
+
+        val cursor = ctx.contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+            ),
+            null, null, null
+        ) ?: return null
+
+        cursor.use {
+            while (it.moveToNext()) {
+                val display = it.getString(0) ?: continue
+                val number = it.getString(1) ?: continue
+                val n = normalize(display)
+                val score = when {
+                    n == query -> 100
+                    n.startsWith(query) -> 80
+                    n.contains(query) -> 60
+                    words.all { w -> n.contains(w) } -> 50
+                    else -> {
+                        val hits = words.count { w -> w.length > 2 && n.contains(w) }
+                        if (hits > 0) 10 * hits else 0
+                    }
+                }
+                if (score > bestScore) {
+                    bestScore = score
+                    best = display to number
+                }
+            }
+        }
+        return best
     }
 
     private fun openApp(t: String): String {

@@ -11,7 +11,7 @@
     <string name="stop">Acha kusikiliza</string>
     <string name="overlay">Ruhusu \"Display over other apps\" (hiari)</string>
     <string name="overlay_missing">Simu yako haina kipengele hiki. Haina shida: kamera na apps zitafunguliwa kwa kugusa arifa itakayotokea.</string>
-    <string name="help">Sema neno la kuamsha, subiri mlio mfupi, kisha sema amri. Mifano:\n\n• \"washa tochi\" / \"zima tochi\"\n• \"fungua kamera\"\n• \"volume juu / chini / kimya\"\n• \"fungua wifi\" / \"fungua bluetooth\"\n• \"saa ngapi\"\n• \"piga 0712345678\"\n• \"fungua WhatsApp\"\n\nTochi, sauti na muda vinafanya kazi bila kugusa simu. Kufungua kamera au app kutoka nyuma kunahitaji kugusa arifa itakayotokea, isipokuwa simu yako iruhusu \"Display over other apps\".</string>
+    <string name="help">Sema neno la kuamsha, subiri mlio mfupi, kisha sema amri. Mifano:\n\n• \"washa tochi\" / \"zima tochi\"\n• \"fungua kamera\"\n• \"volume juu / chini / kimya\"\n• \"fungua wifi\" / \"fungua bluetooth\"\n• \"saa ngapi\"\n• \"piga mama\" (jina kutoka anwani zako) au \"piga 0712345678\"\n• \"fungua WhatsApp\"\n\nTochi, sauti na muda vinafanya kazi bila kugusa simu. Kufungua kamera au app kutoka nyuma kunahitaji kugusa arifa itakayotokea, isipokuwa simu yako iruhusu \"Display over other apps\".</string>
     <string name="status_started">Inasikiliza… sema \"%1$s\"</string>
     <string name="status_stopped">Imesimamishwa</string>
     <string name="need_mic">Ruhusa ya maikrofoni inahitajika</string>
