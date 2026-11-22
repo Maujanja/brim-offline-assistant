@@ -1,5 +1,8 @@
 package com.msaidizi.app
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.hardware.camera2.CameraCharacteristics
@@ -10,6 +13,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
+import androidx.core.app.NotificationCompat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -106,8 +110,7 @@ class CommandHandler(private val ctx: Context) {
 
     private fun openCamera(video: Boolean): String {
         val action = if (video) MediaStore.ACTION_VIDEO_CAPTURE else MediaStore.ACTION_IMAGE_CAPTURE
-        startActivity(Intent(action))
-        return "Nafungua kamera"
+        return opened(Intent(action), "kamera")
     }
 
     private fun changeVolume(t: String): String {
@@ -130,13 +133,11 @@ class CommandHandler(private val ctx: Context) {
     private fun openWifiPanel(): String {
         val action = if (Build.VERSION.SDK_INT >= 29) Settings.Panel.ACTION_INTERNET_CONNECTIVITY
         else Settings.ACTION_WIFI_SETTINGS
-        startActivity(Intent(action))
-        return "Nafungua mipangilio ya mtandao"
+        return opened(Intent(action), "mipangilio ya mtandao")
     }
 
     private fun openSettings(action: String, name: String): String {
-        startActivity(Intent(action))
-        return "Nafungua $name"
+        return opened(Intent(action), name)
     }
 
     private fun tellTime(): String {
@@ -147,8 +148,7 @@ class CommandHandler(private val ctx: Context) {
     private fun dial(t: String): String {
         val number = t.filter { it.isDigit() || it == '+' }
         if (number.length < 3) return "Sema namba ya simu, mfano piga 0712345678"
-        startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
-        return "Nafungua simu kwa namba $number"
+        return opened(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")), "simu kwa namba $number")
     }
 
     private fun openApp(t: String): String {
@@ -166,12 +166,52 @@ class CommandHandler(private val ctx: Context) {
 
         val intent = pm.getLaunchIntentForPackage(match.activityInfo.packageName)
             ?: return "Siwezi kufungua $name"
-        startActivity(intent)
-        return "Nafungua $name"
+        return opened(intent, name)
     }
 
-    private fun startActivity(intent: Intent) {
-        // Inafanya kazi kutoka huduma ya nyuma tu ukiruhusu "Display over other apps".
-        ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    /** Inafungua moja kwa moja, au (simu isiyo na overlay) inatuma arifa ya kugusa. Inarudisha ujumbe wa kusema. */
+    private fun opened(intent: Intent, label: String): String =
+        if (launch(intent, label)) "Nafungua $label" else "Gusa arifa ili kufungua $label"
+
+    /**
+     * Android 10+ hairuhusu huduma ya nyuma kufungua skrini. Njia mbili:
+     *  1) Ukiwa na "Display over other apps" -> inafungua moja kwa moja.
+     *  2) Vinginevyo (mfano simu za Android Go) -> arifa yenye full-screen intent: skrini ikiwa imefungwa
+     *     inafunguka yenyewe, ikiwa wazi unagusa arifa.
+     * Inarudisha true ikifunguliwa moja kwa moja.
+     */
+    private fun launch(intent: Intent, label: String): Boolean {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val direct = Build.VERSION.SDK_INT < 29 || Settings.canDrawOverlays(ctx)
+        if (direct) {
+            ctx.startActivity(intent)
+            return true
+        }
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= 26) {
+            nm.createNotificationChannel(
+                NotificationChannel(ACTION_CHANNEL, "Vitendo vya Msaidizi", NotificationManager.IMPORTANCE_HIGH)
+            )
+        }
+        val pi = PendingIntent.getActivity(
+            ctx, label.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val n = NotificationCompat.Builder(ctx, ACTION_CHANNEL)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentTitle("Gusa kufungua $label")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setContentIntent(pi)
+            .setFullScreenIntent(pi, true)
+            .setAutoCancel(true)
+            .setTimeoutAfter(20_000)
+            .build()
+        nm.notify(ACTION_NOTIF_ID, n)
+        return false
+    }
+
+    private companion object {
+        const val ACTION_CHANNEL = "msaidizi_actions"
+        const val ACTION_NOTIF_ID = 2
     }
 }

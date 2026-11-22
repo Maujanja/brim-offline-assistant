@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Inaruhusu kufungua kamera/app kutoka huduma ya nyuma -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Arifa inayofungua skrini ikiwa imefungwa (simu zisizo na overlay) -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!-- Ili kuorodhesha apps zinazoweza kufunguliwa kwa jina -->
     <queries>

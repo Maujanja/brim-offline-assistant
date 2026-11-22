@@ -13,55 +13,22 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/key_label"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/accessKeyInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/key_hint"
-            android:importantForAutofill="no"
-            android:inputType="textVisiblePassword" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
             android:text="@string/wake_label"
             android:textStyle="bold" />
 
-        <Spinner
-            android:id="@+id/keywordSpinner"
+        <EditText
+            android:id="@+id/wakeInput"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:importantForAutofill="no"
+            android:inputType="textNoSuggestions"
+            android:text="hey phone" />
 
         <TextView
-            android:id="@+id/ppnStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textStyle="italic" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/ppnBtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text="@string/ppn_pick" />
-
-            <Button
-                android:id="@+id/ppnClearBtn"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/ppn_clear" />
-        </LinearLayout>
+            android:layout_marginTop="4dp"
+            android:text="@string/wake_hint" />
 
         <TextView
             android:layout_width="wrap_content"

@@ -24,6 +24,19 @@ jobs:
         with:
           gradle-version: 8.7
 
+      # Modeli ndogo ya Vosk (Kiingereza, ~40 MB) inawekwa ndani ya APK ili wake word ifanye kazi bila intaneti
+      - name: Download Vosk model
+        run: |
+          set -euxo pipefail
+          mkdir -p app/src/main/assets
+          curl -L --fail -o /tmp/vosk.zip https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+          unzip -q /tmp/vosk.zip -d /tmp/vosk
+          rm -rf app/src/main/assets/model-en
+          mv /tmp/vosk/vosk-model-small-en-us-0.15 app/src/main/assets/model-en
+          # StorageService.unpack inahitaji faili la uuid kujua kama inakili upya
+          cat /proc/sys/kernel/random/uuid > app/src/main/assets/model-en/uuid
+          du -sh app/src/main/assets/model-en
+
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 

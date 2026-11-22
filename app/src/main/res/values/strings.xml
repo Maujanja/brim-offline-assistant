@@ -1,22 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Msaidizi</string>
-    <string name="key_label">Picovoice AccessKey (bure, console.picovoice.ai)</string>
-    <string name="key_hint">Bandika AccessKey hapa</string>
-    <string name="need_key">Weka AccessKey ya Picovoice kwanza</string>
-    <string name="wake_label">Neno la kuamsha</string>
-    <string name="ppn_builtin">Linatumia neno lililojengwa ndani (chagua hapo juu)</string>
-    <string name="ppn_custom">Linatumia faili lako maalum la .ppn</string>
-    <string name="ppn_custom_short">neno lako maalum</string>
-    <string name="ppn_pick">Chagua faili la .ppn (hiari)</string>
-    <string name="ppn_clear">Ondoa</string>
+    <string name="wake_label">Neno la kuamsha (Kiingereza)</string>
+    <string name="wake_hint">Tumia maneno ya kawaida ya Kiingereza, mfano \"hey phone\", \"hey computer\" au \"hello jarvis\". Vifungu vya maneno mawili au zaidi vinatambulika vizuri kuliko neno moja.</string>
+    <string name="need_wake">Weka neno la kuamsha</string>
     <string name="lang_label">Lugha ya amri</string>
     <string name="lang_sw">Kiswahili</string>
     <string name="lang_en">English</string>
     <string name="start">Anza kusikiliza</string>
     <string name="stop">Acha kusikiliza</string>
-    <string name="overlay">Ruhusu kufungua kamera/apps (Display over other apps)</string>
-    <string name="help">Sema neno la kuamsha, subiri mlio mfupi, kisha sema amri. Mifano:\n\n• \"washa tochi\" / \"zima tochi\"\n• \"fungua kamera\"\n• \"volume juu / chini / kimya\"\n• \"fungua wifi\" / \"fungua bluetooth\"\n• \"saa ngapi\"\n• \"piga 0712345678\"\n• \"fungua WhatsApp\"</string>
+    <string name="overlay">Ruhusu \"Display over other apps\" (hiari)</string>
+    <string name="overlay_missing">Simu yako haina kipengele hiki. Haina shida: kamera na apps zitafunguliwa kwa kugusa arifa itakayotokea.</string>
+    <string name="help">Sema neno la kuamsha, subiri mlio mfupi, kisha sema amri. Mifano:\n\n• \"washa tochi\" / \"zima tochi\"\n• \"fungua kamera\"\n• \"volume juu / chini / kimya\"\n• \"fungua wifi\" / \"fungua bluetooth\"\n• \"saa ngapi\"\n• \"piga 0712345678\"\n• \"fungua WhatsApp\"\n\nTochi, sauti na muda vinafanya kazi bila kugusa simu. Kufungua kamera au app kutoka nyuma kunahitaji kugusa arifa itakayotokea, isipokuwa simu yako iruhusu \"Display over other apps\".</string>
     <string name="status_started">Inasikiliza… sema \"%1$s\"</string>
     <string name="status_stopped">Imesimamishwa</string>
     <string name="need_mic">Ruhusa ya maikrofoni inahitajika</string>

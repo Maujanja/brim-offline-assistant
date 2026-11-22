@@ -14,43 +14,53 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.speech.RecognitionListener
+import android.speech.RecognitionListener as AndroidRecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import ai.picovoice.porcupine.Porcupine
-import ai.picovoice.porcupine.PorcupineManager
-import ai.picovoice.porcupine.PorcupineManagerCallback
-import ai.picovoice.porcupine.PorcupineManagerErrorCallback
+import org.json.JSONArray
+import org.json.JSONObject
+import org.vosk.LibVosk
+import org.vosk.LogLevel
+import org.vosk.Model
+import org.vosk.Recognizer
+import org.vosk.android.RecognitionListener as VoskRecognitionListener
+import org.vosk.android.SpeechService
+import org.vosk.android.StorageService
 
 /**
- * Hatua 1: Porcupine inasikiliza wake word kwenye simu yenyewe (bila intaneti, betri kidogo).
- * Hatua 2: Wake word ikisikika, Porcupine inasimama, mlio unalia, na SpeechRecognizer
- *          inasikiliza amri MOJA. Kisha CommandHandler inaitekeleza na Porcupine inaanza tena.
+ * Hatua 1: Vosk (kwenye simu yenyewe, bila intaneti, bila AccessKey) inasikiliza kifungu cha wake word.
+ * Hatua 2: Kikisikika, Vosk inasimama, mlio unalia, na SpeechRecognizer ya simu inasikiliza amri MOJA.
+ *          Kisha CommandHandler inaitekeleza na Vosk inaanza kusikiliza tena.
+ *
+ * Wake word lazima iwe maneno ya Kiingereza (modeli ndogo ya Vosk ya Kiingereza), mfano "hey phone".
  */
 class VoiceService : Service() {
 
     companion object {
         const val PREFS = "cfg"
-        const val KEY_ACCESS = "access_key"
-        const val KEY_KEYWORD = "keyword"     // jina la BuiltInKeyword, mfano JARVIS
-        const val KEY_PPN = "ppn_path"        // njia ya faili la .ppn maalum (hiari)
+        const val KEY_WAKE = "wake"
         const val KEY_LANG = "lang"
+        const val DEFAULT_WAKE = "hey phone"
         const val ACTION_STOP = "com.msaidizi.app.STOP"
         private const val CHANNEL_ID = "msaidizi"
         private const val NOTIF_ID = 1
         private const val TAG = "Msaidizi"
         private const val COMMAND_TIMEOUT_MS = 9000L
+        private const val MODEL_ASSET = "model-en"
     }
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var commands: CommandHandler
-    private var porcupine: PorcupineManager? = null
+    private var model: Model? = null
+    private var speech: SpeechService? = null
     private var recognizer: SpeechRecognizer? = null
+    private var wakePhrase = DEFAULT_WAKE
     private var language = "sw-TZ"
-    private var busy = false   // true wakati tunasubiri amri
+    private var busy = false          // true wakati tunasubiri/tunatekeleza amri
+    private var destroyed = false
 
     override fun onCreate() {
         super.onCreate()
@@ -66,71 +76,93 @@ class VoiceService : Service() {
             return START_NOT_STICKY
         }
         val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        wakePhrase = prefs.getString(KEY_WAKE, DEFAULT_WAKE)!!.lowercase().trim().ifBlank { DEFAULT_WAKE }
         language = prefs.getString(KEY_LANG, "sw-TZ")!!
-        if (porcupine == null) initPorcupine(prefs.getString(KEY_ACCESS, "")!!,
-            prefs.getString(KEY_KEYWORD, "JARVIS")!!,
-            prefs.getString(KEY_PPN, "")!!)
+        if (model == null) loadModel() else if (speech == null && !busy) startWakeListening()
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        destroyed = true
         handler.removeCallbacksAndMessages(null)
         recognizer?.destroy()
         recognizer = null
-        try {
-            porcupine?.stop()
-            porcupine?.delete()
-        } catch (e: Exception) {
-            Log.w(TAG, "porcupine cleanup", e)
-        }
-        porcupine = null
+        stopWakeListening()
+        model?.close()
+        model = null
         commands.shutdown()
         super.onDestroy()
     }
 
-    // ------------------------------------------------------------ Porcupine
+    // ------------------------------------------------------------ Vosk (wake word)
 
-    private fun initPorcupine(accessKey: String, keyword: String, ppnPath: String) {
-        if (accessKey.isBlank()) {
-            fail("Weka AccessKey ya Picovoice kwenye app kwanza")
-            return
-        }
+    private fun loadModel() {
+        LibVosk.setLogLevel(LogLevel.WARNINGS)
+        StorageService.unpack(
+            this, MODEL_ASSET, MODEL_ASSET,
+            { m ->
+                if (destroyed) { m.close(); return@unpack }
+                model = m
+                startWakeListening()
+            },
+            { e -> fail("Modeli ya sauti haikupatikana: ${e.message}") }
+        )
+    }
+
+    private fun startWakeListening() {
+        val m = model ?: return
+        stopWakeListening()
         try {
-            val builder = PorcupineManager.Builder()
-                .setAccessKey(accessKey)
-                .setSensitivity(0.7f)   // 0..1; juu = hukosa kidogo lakini makosa ya uongo zaidi
-            if (ppnPath.isNotBlank()) builder.setKeywordPath(ppnPath)
-            else builder.setKeyword(Porcupine.BuiltInKeyword.valueOf(keyword))
-
-            porcupine = builder
-                .setErrorCallback(PorcupineManagerErrorCallback { e ->
-                    Log.e(TAG, "Porcupine error", e)
-                })
-                .build(applicationContext, PorcupineManagerCallback { onWakeWord() })
-            porcupine?.start()
+            // Grammar ndogo: kifungu cha wake word tu + "[unk]" kwa kila kingine. Haraka na sahihi zaidi.
+            val grammar = JSONArray().put(wakePhrase).put("[unk]").toString()
+            val rec = Recognizer(m, 16000.0f, grammar)
+            val svc = SpeechService(rec, 16000.0f)
+            svc.startListening(voskListener)
+            speech = svc
         } catch (e: Exception) {
-            Log.e(TAG, "Porcupine init failed", e)
-            fail("Imeshindwa kuanza wake word: ${e.message}")
+            Log.e(TAG, "startWakeListening", e)
+            fail("Imeshindwa kuanza kusikiliza: ${e.message}")
         }
     }
 
-    /** Inaitwa kutoka thread ya Porcupine. */
-    private fun onWakeWord() {
-        handler.post {
-            if (busy) return@post
-            busy = true
-            try {
-                porcupine?.stop()          // achia maikrofoni kwa SpeechRecognizer
-            } catch (e: Exception) {
-                Log.w(TAG, "stop", e)
-            }
-            beep()
-            handler.postDelayed({ listenForCommand() }, 250)
-            // Ulinzi: kama hakuna kinachotokea, rudi kusikiliza wake word.
-            handler.postDelayed({ if (busy) resumeWakeWord() }, COMMAND_TIMEOUT_MS)
+    private fun stopWakeListening() {
+        speech?.let {
+            try { it.stop() } catch (_: Exception) {}
+            try { it.shutdown() } catch (_: Exception) {}
         }
+        speech = null
+    }
+
+    private val voskListener = object : VoskRecognitionListener {
+        override fun onPartialResult(hypothesis: String?) = check(hypothesis, "partial")
+        override fun onResult(hypothesis: String?) = check(hypothesis, "text")
+        override fun onFinalResult(hypothesis: String?) {}
+        override fun onError(exception: Exception?) {
+            Log.e(TAG, "Vosk error", exception)
+            handler.post { if (!busy && !destroyed) startWakeListening() }
+        }
+        override fun onTimeout() {}
+
+        private fun check(json: String?, key: String) {
+            val text = try {
+                JSONObject(json ?: return).optString(key, "")
+            } catch (_: Exception) {
+                ""
+            }
+            if (text.contains(wakePhrase)) handler.post { onWakeWord() }
+        }
+    }
+
+    private fun onWakeWord() {
+        if (busy || destroyed) return
+        busy = true
+        stopWakeListening()           // achia maikrofoni kwa SpeechRecognizer
+        beep()
+        handler.postDelayed({ listenForCommand() }, 250)
+        // Ulinzi: kama hakuna kinachotokea, rudi kusikiliza wake word.
+        handler.postDelayed({ if (busy) resumeWakeWord() }, COMMAND_TIMEOUT_MS)
     }
 
     private fun resumeWakeWord() {
@@ -138,11 +170,7 @@ class VoiceService : Service() {
         recognizer?.destroy()
         recognizer = null
         busy = false
-        try {
-            porcupine?.start()
-        } catch (e: Exception) {
-            Log.e(TAG, "resume", e)
-        }
+        if (!destroyed) startWakeListening()
     }
 
     // ------------------------------------------------------------ amri
@@ -155,7 +183,7 @@ class VoiceService : Service() {
         }
         recognizer?.destroy()
         recognizer = SpeechRecognizer.createSpeechRecognizer(this).also {
-            it.setRecognitionListener(object : RecognitionListener {
+            it.setRecognitionListener(object : AndroidRecognitionListener {
                 override fun onResults(results: Bundle?) {
                     val text = results
                         ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -195,9 +223,10 @@ class VoiceService : Service() {
     }
 
     private fun fail(message: String) {
-        commands.speak(message)
         Log.e(TAG, message)
-        stopSelf()
+        commands.speak(message)
+        // toa muda TTS isome ujumbe kabla ya kusimama
+        handler.postDelayed({ stopSelf() }, 3500)
     }
 
     // ------------------------------------------------------------ arifa
@@ -221,7 +250,7 @@ class VoiceService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("Msaidizi anasikiliza")
-            .setContentText("Sema neno la kuamsha kisha amri")
+            .setContentText("Sema \"$wakePhrase\" kisha amri")
             .setContentIntent(open)
             .addAction(0, "Acha", stop)
             .setOngoing(true)
