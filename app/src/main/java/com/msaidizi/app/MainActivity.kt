@@ -1,7 +1,9 @@
 package com.msaidizi.app
 
 import android.Manifest
+import android.app.admin.DevicePolicyManager
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -63,6 +65,15 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.stopBtn).setOnClickListener {
             startService(Intent(this, VoiceService::class.java).setAction(VoiceService.ACTION_STOP))
             status.text = getString(R.string.status_stopped)
+        }
+
+        findViewById<Button>(R.id.lockBtn).setOnClickListener {
+            val admin = ComponentName(this, LockAdminReceiver::class.java)
+            startActivity(
+                Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                    .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, admin)
+                    .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, getString(R.string.lock_reason))
+            )
         }
 
         findViewById<Button>(R.id.overlayBtn).setOnClickListener {

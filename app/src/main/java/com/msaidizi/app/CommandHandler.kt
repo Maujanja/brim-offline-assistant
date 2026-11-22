@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.hardware.camera2.CameraCharacteristics
@@ -77,6 +79,14 @@ class CommandHandler(private val ctx: Context) {
                 has(t, "kimya", "mute", "silent") -> setVolumeMute()
                 has(t, "volume", "sauti") -> changeVolume(t)
 
+                // Data ya simu (SIM 1 au SIM 2). Android haziruhusu app kuwasha data moja kwa moja,
+                // kwa hiyo tunafungua paneli ya intaneti ambapo unagusa SIM unayotaka.
+                has(t, "data", "mtandao wa simu", "intaneti ya simu", "mobile") -> openMobileData(t)
+
+                // Kufunga simu (lock): "zima simu", "funga simu", "lock phone", "zima skrini"
+                has(t, "zima", "zimisha", "funga", "lock", "kufuli") &&
+                    has(t, "simu", "skrini", "screen", "phone") -> lockPhone()
+
                 // Mtandao / Bluetooth (Android 10+ hairuhusu kuzima/kuwasha moja kwa moja)
                 has(t, "wifi", "wai fai", "intaneti", "internet") -> openWifiPanel()
                 has(t, "bluetooth", "blututh") -> openSettings(Settings.ACTION_BLUETOOTH_SETTINGS, "Bluetooth")
@@ -133,6 +143,28 @@ class CommandHandler(private val ctx: Context) {
     private fun setVolumeMute(): String {
         audio.setStreamVolume(AudioManager.STREAM_MUSIC, 0, AudioManager.FLAG_SHOW_UI)
         return "Sauti imenyamazishwa"
+    }
+
+    private fun lockPhone(): String {
+        val dpm = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val admin = ComponentName(ctx, LockAdminReceiver::class.java)
+        if (!dpm.isAdminActive(admin)) {
+            return "Washa ruhusa ya kufunga simu ndani ya app kwanza"
+        }
+        dpm.lockNow()
+        return "Nimefunga simu"
+    }
+
+    private fun openMobileData(t: String): String {
+        val sim = when {
+            has(t, "sim 1", "sim1", "sim moja", "sim one", "namba 1", " 1", "moja", "kwanza", "one", "first") -> 1
+            has(t, "sim 2", "sim2", "sim mbili", "sim two", "namba 2", " 2", "mbili", "pili", "two", "second") -> 2
+            else -> null
+        }
+        val action = if (Build.VERSION.SDK_INT >= 29) Settings.Panel.ACTION_INTERNET_CONNECTIVITY
+        else Settings.ACTION_DATA_ROAMING_SETTINGS
+        val base = opened(Intent(action), "data ya simu")
+        return if (sim != null) "$base. Gusa data ya SIM $sim" else "$base. Chagua SIM unayotaka"
     }
 
     private fun openWifiPanel(): String {
