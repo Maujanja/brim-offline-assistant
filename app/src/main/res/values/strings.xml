@@ -8,13 +8,10 @@
     <string name="lang_sw">Kiswahili</string>
     <string name="lang_en">English</string>
 
-    <string name="stt_title">STT API kwa ujumbe wa SMS (hiari)</string>
-    <string name="stt_hint">Ukiweka API, sauti ya ujumbe wako inarekodiwa na kutumwa huko kubadilishwa kuwa maandishi (inafaa zaidi kwa Kiswahili). Inafanya kazi na huduma yoyote inayolingana na OpenAI \"/audio/transcriptions\", mfano OpenAI Whisper au Groq. Usipoweka, simu inatumia utambuzi wake wenyewe. Ufunguo unahifadhiwa kwenye simu yako tu.</string>
-    <string name="preset_openai">OpenAI</string>
-    <string name="preset_groq">Groq</string>
-    <string name="stt_url_hint">URL ya API (mfano https://api.openai.com/v1/audio/transcriptions)</string>
+    <string name="stt_title">STT API yangu (hiari)</string>
+    <string name="stt_hint">Weka anwani na ufunguo wa API yako ya STT (Sauti API). Sauti ya ujumbe wako inarekodiwa kimya kimya na kutumwa kwa POST /api/stt (faili \"file\", lugha \"language\"). Ukiweka anwani ya seva tu, \"/api/stt\" inaongezwa yenyewe. Usipoweka, simu inatumia utambuzi wake wenyewe. Ufunguo unahifadhiwa kwenye simu yako tu.</string>
+    <string name="stt_url_hint">Anwani ya API (mfano https://seva-yako/api/stt)</string>
     <string name="stt_key_hint">API key</string>
-    <string name="stt_model_hint">Jina la modeli (mfano whisper-1)</string>
     <string name="stt_for_commands">Tumia API hii kwa amri zote pia, si ujumbe tu</string>
     <string name="stt_test">Jaribu STT (sema sentensi fupi)</string>
     <string name="stt_need">Weka URL na API key kwanza</string>

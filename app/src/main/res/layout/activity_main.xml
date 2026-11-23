@@ -70,26 +70,6 @@
             android:layout_marginTop="4dp"
             android:text="@string/stt_hint" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/presetOpenAi"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/preset_openai" />
-
-            <Button
-                android:id="@+id/presetGroq"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/preset_groq" />
-        </LinearLayout>
-
         <EditText
             android:id="@+id/sttUrl"
             android:layout_width="match_parent"
@@ -105,14 +85,6 @@
             android:hint="@string/stt_key_hint"
             android:importantForAutofill="no"
             android:inputType="textPassword" />
-
-        <EditText
-            android:id="@+id/sttModel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/stt_model_hint"
-            android:importantForAutofill="no"
-            android:inputType="textNoSuggestions" />
 
         <CheckBox
             android:id="@+id/sttCmd"

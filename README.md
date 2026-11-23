@@ -42,12 +42,14 @@ Lazima liwe maneno ya Kiingereza yaliyomo kwenye kamusi ya modeli: "hey phone", 
 \* Android haziruhusu app kuwasha data kwa API. Msaidizi anaiga mguso wako kwenye paneli ya mipangilio
 (jitihada bora; muundo wa paneli hutofautiana kwa kila simu). Ikishindwa, anakwambia ugonge mwenyewe.
 
-## STT API kwa ujumbe wa SMS
-Kwenye skrini kuu, sehemu ya **STT API**: weka URL, API key na jina la modeli (vitufe vya OpenAI/Groq vinajaza
-URL na modeli). Inafanya kazi na API yoyote inayolingana na OpenAI `POST /audio/transcriptions`
-(multipart: `file`, `model`, `language`). Bonyeza **Jaribu STT** kuthibitisha. Kisanduku cha
-"Tumia API kwa amri zote pia" kinaipa API kazi ya amri pia, si ujumbe tu (usahihi bora kwa Kiswahili).
-Ufunguo unahifadhiwa kwenye simu yako tu. Usipoweka API, simu inatumia utambuzi wake wenyewe.
+## STT API yako (Sauti API)
+Kwenye skrini kuu, sehemu ya **STT API yangu**: weka anwani ya API (mfano `https://seva-yako/api/stt`, au anwani ya
+seva tu na `/api/stt` inaongezwa) na API key. App inarekodi sauti **kimya kimya** (WAV, 16 kHz, bila mlio wowote),
+inaituma kwa `POST /api/stt` kama faili `file` pamoja na `language` (mfano `sw-TZ`), na ufunguo kwenye vichwa
+`x-api-key` na `Authorization: Bearer`. Jibu linasomwa kutoka `text` (au `transcript`, n.k.).
+Bonyeza **Jaribu STT** kuthibitisha. Kisanduku cha "Tumia API hii kwa amri zote pia" kinaipa API kazi ya
+amri pia, si ujumbe wa SMS tu. Usipoweka API, simu inatumia utambuzi wake wenyewe (na mlio wa mfumo unanyamazishwa
+wakati wa kusikiliza upya). Ufunguo unahifadhiwa kwenye simu yako tu.
 
 ## Mambo ya kujua
 - SMS inatumwa **moja kwa moja bila kuthibitisha**, na jina linatafutwa kwenye anwani kwa ulinganisho

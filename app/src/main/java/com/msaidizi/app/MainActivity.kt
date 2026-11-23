@@ -28,7 +28,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var sttUrl: EditText
     private lateinit var sttKey: EditText
-    private lateinit var sttModel: EditText
     private lateinit var sttCmd: CheckBox
     private var testInput: SpeechInput? = null
 
@@ -49,7 +48,6 @@ class MainActivity : AppCompatActivity() {
         status = findViewById(R.id.status)
         sttUrl = findViewById(R.id.sttUrl)
         sttKey = findViewById(R.id.sttKey)
-        sttModel = findViewById(R.id.sttModel)
         sttCmd = findViewById(R.id.sttCmd)
 
         wakeInput.setText(prefs.getString(VoiceService.KEY_WAKE, VoiceService.DEFAULT_WAKE))
@@ -57,17 +55,7 @@ class MainActivity : AppCompatActivity() {
         else langSw.isChecked = true
         sttUrl.setText(prefs.getString(VoiceService.KEY_STT_URL, ""))
         sttKey.setText(prefs.getString(VoiceService.KEY_STT_KEY, ""))
-        sttModel.setText(prefs.getString(VoiceService.KEY_STT_MODEL, "whisper-1"))
         sttCmd.isChecked = prefs.getBoolean(VoiceService.KEY_STT_CMD, false)
-
-        findViewById<Button>(R.id.presetOpenAi).setOnClickListener {
-            sttUrl.setText("https://api.openai.com/v1/audio/transcriptions")
-            sttModel.setText("whisper-1")
-        }
-        findViewById<Button>(R.id.presetGroq).setOnClickListener {
-            sttUrl.setText("https://api.groq.com/openai/v1/audio/transcriptions")
-            sttModel.setText("whisper-large-v3")
-        }
 
         findViewById<Button>(R.id.sttTestBtn).setOnClickListener { testStt() }
 
@@ -124,7 +112,6 @@ class MainActivity : AppCompatActivity() {
             .putString(VoiceService.KEY_LANG, if (langEn.isChecked) "en-US" else "sw-TZ")
             .putString(VoiceService.KEY_STT_URL, sttUrl.text.toString().trim())
             .putString(VoiceService.KEY_STT_KEY, sttKey.text.toString().trim())
-            .putString(VoiceService.KEY_STT_MODEL, sttModel.text.toString().trim().ifBlank { "whisper-1" })
             .putBoolean(VoiceService.KEY_STT_CMD, sttCmd.isChecked)
             .apply()
     }
@@ -146,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         status.text = getString(R.string.stt_testing)
         val input = SpeechInput(this)
         testInput = input
-        val lang = if (langEn.isChecked) "en" else "sw"
+        val lang = if (langEn.isChecked) "en-US" else "sw-TZ"
         status.postDelayed({
             input.listenApi(cfg, lang, 10_000L) { text, err ->
                 status.text = if (!text.isNullOrBlank()) getString(R.string.stt_heard, text)
