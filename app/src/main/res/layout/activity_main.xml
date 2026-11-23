@@ -57,11 +57,80 @@
                 android:text="@string/lang_en" />
         </RadioGroup>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/stt_title"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/stt_hint" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/presetOpenAi"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/preset_openai" />
+
+            <Button
+                android:id="@+id/presetGroq"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/preset_groq" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/sttUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/stt_url_hint"
+            android:importantForAutofill="no"
+            android:inputType="textUri" />
+
+        <EditText
+            android:id="@+id/sttKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/stt_key_hint"
+            android:importantForAutofill="no"
+            android:inputType="textPassword" />
+
+        <EditText
+            android:id="@+id/sttModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/stt_model_hint"
+            android:importantForAutofill="no"
+            android:inputType="textNoSuggestions" />
+
+        <CheckBox
+            android:id="@+id/sttCmd"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/stt_for_commands" />
+
+        <Button
+            android:id="@+id/sttTestBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/stt_test" />
+
         <Button
             android:id="@+id/startBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="20dp"
             android:text="@string/start" />
 
         <Button
@@ -71,22 +140,23 @@
             android:text="@string/stop" />
 
         <Button
-            android:id="@+id/overlayBtn"
+            android:id="@+id/a11yBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/overlay" />
-
-        <Button
-            android:id="@+id/autoTapBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auto_tap" />
+            android:layout_marginTop="12dp"
+            android:text="@string/a11y_btn" />
 
         <Button
             android:id="@+id/lockBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/lock_perm" />
+
+        <Button
+            android:id="@+id/overlayBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/overlay" />
 
         <TextView
             android:id="@+id/status"
