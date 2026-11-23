@@ -148,7 +148,7 @@ class MainActivity : AppCompatActivity() {
         testInput = input
         val lang = if (langEn.isChecked) "en" else "sw"
         status.postDelayed({
-            input.listenApi(cfg, lang) { text, err ->
+            input.listenApi(cfg, lang, 10_000L) { text, err ->
                 status.text = if (!text.isNullOrBlank()) getString(R.string.stt_heard, text)
                 else getString(R.string.stt_failed, err ?: "?")
             }

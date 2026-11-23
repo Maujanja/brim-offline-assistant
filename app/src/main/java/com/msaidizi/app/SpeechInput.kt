@@ -56,13 +56,23 @@ class SpeechInput(private val ctx: Context) {
 
     // ------------------------------------------------------------ built-in
 
-    fun listenBuiltIn(lang: String, onResult: (String?, String?) -> Unit) {
+    /**
+     * Utambuzi wa simu. Google inakata haraka ukichelewa kuanza kuongea, kwa hiyo tukipata "kimya/hakuna maneno"
+     * tunaanza kusikiliza tena, hadi [waitMs] zipite tangu mwanzo.
+     */
+    fun listenBuiltIn(lang: String, waitMs: Long, onResult: (String?, String?) -> Unit) {
         cancel()
         val my = token
         if (!SpeechRecognizer.isRecognitionAvailable(ctx)) {
             onResult(null, "Huduma ya kutambua sauti haipatikani kwenye simu hii")
             return
         }
+        startBuiltIn(my, lang, SystemClock.elapsedRealtime() + waitMs, onResult)
+    }
+
+    private fun startBuiltIn(my: Int, lang: String, deadline: Long, onResult: (String?, String?) -> Unit) {
+        if (my != token) return
+        recognizer?.destroy()
         val r = SpeechRecognizer.createSpeechRecognizer(ctx)
         recognizer = r
         r.setRecognitionListener(object : RecognitionListener {
@@ -74,6 +84,12 @@ class SpeechInput(private val ctx: Context) {
 
             override fun onError(error: Int) {
                 if (my != token) return
+                val noSpeech = error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT ||
+                    error == SpeechRecognizer.ERROR_NO_MATCH
+                if (noSpeech && deadline - SystemClock.elapsedRealtime() > 2000) {
+                    handler.postDelayed({ startBuiltIn(my, lang, deadline, onResult) }, 150)
+                    return
+                }
                 onResult(null, "Sikusikia vizuri (kosa $error)")
             }
 
@@ -90,16 +106,19 @@ class SpeechInput(private val ctx: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, ctx.packageName)
+            // Vidokezo vya kusubiri kimya kirefu zaidi kabla ya kumaliza (baadhi ya injini huvipuuza)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
         }
         r.startListening(intent)
     }
 
     // ------------------------------------------------------------ API
 
-    fun listenApi(cfg: Config, lang: String, onResult: (String?, String?) -> Unit) {
+    fun listenApi(cfg: Config, lang: String, waitMs: Long, onResult: (String?, String?) -> Unit) {
         cancel()
         val my = token
-        recordNote(my) { file, err ->
+        recordNote(my, waitMs) { file, err ->
             if (my != token) return@recordNote
             if (file == null) {
                 onResult(null, err)
@@ -125,7 +144,7 @@ class SpeechInput(private val ctx: Context) {
         }
     }
 
-    private fun recordNote(my: Int, done: (File?, String?) -> Unit) {
+    private fun recordNote(my: Int, waitMs: Long, done: (File?, String?) -> Unit) {
         val file = File(ctx.cacheDir, "note-$my.m4a")
         @Suppress("DEPRECATION")
         val rec = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(ctx) else MediaRecorder()
@@ -159,7 +178,7 @@ class SpeechInput(private val ctx: Context) {
                     lastLoud = now
                 }
                 val finished = (speechStarted && now - lastLoud > 1800) ||
-                    (!speechStarted && now - startAt > 7000) ||
+                    (!speechStarted && now - startAt > waitMs) ||
                     now - startAt > 30000
                 if (finished) {
                     stopRecorder()

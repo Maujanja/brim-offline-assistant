@@ -50,7 +50,10 @@ class VoiceService : Service() {
         private const val CHANNEL_ID = "msaidizi"
         private const val NOTIF_ID = 1
         private const val TAG = "Msaidizi"
-        private const val COMMAND_TIMEOUT_MS = 12_000L
+        private const val COMMAND_TIMEOUT_MS = 50_000L
+        private const val MIN_CONF = 0.7
+        private const val COMMAND_WAIT_MS = 12_000L     // muda wa kuanza kuongea baada ya mlio
+        private const val DICTATION_WAIT_MS = 15_000L
         private const val DICTATION_TIMEOUT_MS = 75_000L
         private const val MODEL_ASSET = "model-en"
     }
@@ -63,6 +66,13 @@ class VoiceService : Service() {
     private var wakePhrase = DEFAULT_WAKE
     private var language = "sw-TZ"
     private var busy = false          // true wakati tunasubiri/tunatekeleza amri
+    private val guard = Runnable { if (busy) resumeWakeWord() }
+
+    /** Ulinzi: kama hatua ikikwama, rudi kusikiliza wake word baada ya [ms]. */
+    private fun armGuard(ms: Long) {
+        handler.removeCallbacks(guard)
+        handler.postDelayed(guard, ms)
+    }
     private var destroyed = false
 
     override fun onCreate() {
@@ -118,9 +128,10 @@ class VoiceService : Service() {
         val m = model ?: return
         stopWakeListening()
         try {
-            // Grammar ndogo: kifungu cha wake word tu + "[unk]" kwa kila kingine. Haraka na sahihi zaidi.
-            val grammar = JSONArray().put(wakePhrase).put("[unk]").toString()
-            val rec = Recognizer(m, 16000.0f, grammar)
+            // Utambuzi huru (bila grammar): maneno mengine kama "hey pen" yanatambuliwa jinsi yalivyo,
+            // hayalazimishwi kuwa wake word. Kila neno linakuja na alama ya uhakika (conf).
+            val rec = Recognizer(m, 16000.0f)
+            rec.setWords(true)
             val svc = SpeechService(rec, 16000.0f)
             svc.startListening(voskListener)
             speech = svc
@@ -139,23 +150,68 @@ class VoiceService : Service() {
     }
 
     private val voskListener = object : VoskRecognitionListener {
-        override fun onPartialResult(hypothesis: String?) = check(hypothesis, "partial")
-        override fun onResult(hypothesis: String?) = check(hypothesis, "text")
+        // Tunatumia matokeo ya mwisho tu (yana alama ya uhakika); ya muda mfupi (partial) yanakosea mara nyingi.
+        override fun onPartialResult(hypothesis: String?) {}
         override fun onFinalResult(hypothesis: String?) {}
+        override fun onResult(hypothesis: String?) {
+            val obj = try {
+                JSONObject(hypothesis ?: return)
+            } catch (_: Exception) {
+                return
+            }
+            val text = obj.optString("text", "")
+            if (text.isNotBlank() && containsWake(text, obj.optJSONArray("result"))) {
+                handler.post { onWakeWord() }
+            }
+        }
+
         override fun onError(exception: Exception?) {
             Log.e(TAG, "Vosk error", exception)
             handler.post { if (!busy && !destroyed) startWakeListening() }
         }
-        override fun onTimeout() {}
 
-        private fun check(json: String?, key: String) {
-            val text = try {
-                JSONObject(json ?: return).optString(key, "")
-            } catch (_: Exception) {
-                ""
+        override fun onTimeout() {}
+    }
+
+    /** Wake word inakubalika tu ikiwa maneno yote yamesikika kwa mfuatano, kwa uhakika wa kutosha. */
+    private fun containsWake(text: String, words: JSONArray?): Boolean {
+        val target = wakePhrase.split(" ").filter { it.isNotBlank() }
+        if (target.isEmpty()) return false
+        val heard = text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        outer@ for (start in 0..(heard.size - target.size)) {
+            for (i in target.indices) {
+                if (!sameWord(heard[start + i], target[i])) continue@outer
             }
-            if (text.contains(wakePhrase)) handler.post { onWakeWord() }
+            if (words != null) {
+                for (i in target.indices) {
+                    val conf = words.optJSONObject(start + i)?.optDouble("conf", 1.0) ?: 1.0
+                    if (conf < MIN_CONF) continue@outer
+                }
+            }
+            return true
         }
+        return false
+    }
+
+    /** Sawa kabisa; "hay" kwa "hey"; na makosa ya herufi moja kwa maneno marefu (6+) kama "computer". */
+    private fun sameWord(heard: String, target: String): Boolean {
+        if (heard == target) return true
+        if (target == "hey" && heard == "hay") return true
+        return target.length >= 6 && editDistance(heard, target) <= 1
+    }
+
+    private fun editDistance(a: String, b: String): Int {
+        if (Math.abs(a.length - b.length) > 1) return 2
+        val d = Array(a.length + 1) { IntArray(b.length + 1) }
+        for (i in 0..a.length) d[i][0] = i
+        for (j in 0..b.length) d[0][j] = j
+        for (i in 1..a.length) {
+            for (j in 1..b.length) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+            }
+        }
+        return d[a.length][b.length]
     }
 
     private fun onWakeWord() {
@@ -165,8 +221,7 @@ class VoiceService : Service() {
         commands.music.pauseForCommand()
         beep()
         handler.postDelayed({ listenForCommand() }, 250)
-        // Ulinzi: kama hakuna kinachotokea, rudi kusikiliza wake word.
-        handler.postDelayed({ if (busy) resumeWakeWord() }, COMMAND_TIMEOUT_MS)
+        armGuard(COMMAND_TIMEOUT_MS)
     }
 
     private fun resumeWakeWord() {
@@ -181,16 +236,16 @@ class VoiceService : Service() {
 
     private fun apiLang() = if (language.startsWith("sw")) "sw" else "en"
 
-    private fun listen(forCommand: Boolean, cb: (String?, String?) -> Unit) {
+    /** [waitMs] = muda wa kusubiri uanze kuongea kabla ya kukata tamaa. */
+    private fun listen(forCommand: Boolean, waitMs: Long, cb: (String?, String?) -> Unit) {
         val cfg = SpeechInput.Config.load(this)
         val useApi = cfg.enabled && (!forCommand || cfg.forCommands)
-        if (useApi) input.listenApi(cfg, apiLang(), cb) else input.listenBuiltIn(language, cb)
+        if (useApi) input.listenApi(cfg, apiLang(), waitMs, cb) else input.listenBuiltIn(language, waitMs, cb)
     }
 
     private fun listenForCommand() {
-        // Kurekodi kwa API kunaweza kuchukua hadi sekunde 40 (kurekodi + kutuma)
-        handler.postDelayed({ if (busy) resumeWakeWord() }, 45_000)
-        listen(forCommand = true) { text, err -> handleCommand(text, err) }
+        armGuard(COMMAND_TIMEOUT_MS)
+        listen(forCommand = true, waitMs = COMMAND_WAIT_MS) { text, err -> handleCommand(text, err) }
     }
 
     private fun handleCommand(text: String?, err: String?) {
@@ -208,7 +263,7 @@ class VoiceService : Service() {
             handler.postDelayed({ resumeWakeWord() }, 2200)
             return
         }
-        handler.postDelayed({ if (busy) resumeWakeWord() }, DICTATION_TIMEOUT_MS)
+        armGuard(DICTATION_TIMEOUT_MS)
         commands.afterSpeech {
             beep()
             handler.postDelayed({ dictate(dictation) }, 300)
@@ -217,7 +272,7 @@ class VoiceService : Service() {
 
     /** Inasikiliza ujumbe mzima (API ya STT ukiiweka, vinginevyo utambuzi wa simu) kisha inaupa [d]. */
     private fun dictate(d: CommandHandler.Dictation) {
-        listen(forCommand = false) { text, err ->
+        listen(forCommand = false, waitMs = DICTATION_WAIT_MS) { text, err ->
             handler.removeCallbacksAndMessages(null)
             if (text.isNullOrBlank()) {
                 Log.w(TAG, "dictation stt: $err")
