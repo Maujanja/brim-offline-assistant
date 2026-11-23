@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sttUrl: EditText
     private lateinit var sttKey: EditText
     private lateinit var sttCmd: CheckBox
+    private lateinit var msgAlerts: CheckBox
     private var testInput: SpeechInput? = null
 
     private val prefs by lazy { getSharedPreferences(VoiceService.PREFS, MODE_PRIVATE) }
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         sttUrl = findViewById(R.id.sttUrl)
         sttKey = findViewById(R.id.sttKey)
         sttCmd = findViewById(R.id.sttCmd)
+        msgAlerts = findViewById(R.id.msgAlerts)
 
         wakeInput.setText(prefs.getString(VoiceService.KEY_WAKE, VoiceService.DEFAULT_WAKE))
         if (prefs.getString(VoiceService.KEY_LANG, "sw-TZ") == "en-US") langEn.isChecked = true
@@ -56,6 +58,7 @@ class MainActivity : AppCompatActivity() {
         sttUrl.setText(prefs.getString(VoiceService.KEY_STT_URL, ""))
         sttKey.setText(prefs.getString(VoiceService.KEY_STT_KEY, ""))
         sttCmd.isChecked = prefs.getBoolean(VoiceService.KEY_STT_CMD, false)
+        msgAlerts.isChecked = prefs.getBoolean(VoiceService.KEY_MSG_ALERTS, true)
 
         findViewById<Button>(R.id.sttTestBtn).setOnClickListener { testStt() }
 
@@ -81,6 +84,15 @@ class MainActivity : AppCompatActivity() {
             toast(getString(R.string.a11y_hint))
             try {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            } catch (e: ActivityNotFoundException) {
+                toast(getString(R.string.overlay_missing))
+            }
+        }
+
+        findViewById<Button>(R.id.notifAccessBtn).setOnClickListener {
+            toast(getString(R.string.notif_access_hint))
+            try {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             } catch (e: ActivityNotFoundException) {
                 toast(getString(R.string.overlay_missing))
             }
@@ -113,6 +125,7 @@ class MainActivity : AppCompatActivity() {
             .putString(VoiceService.KEY_STT_URL, sttUrl.text.toString().trim())
             .putString(VoiceService.KEY_STT_KEY, sttKey.text.toString().trim())
             .putBoolean(VoiceService.KEY_STT_CMD, sttCmd.isChecked)
+            .putBoolean(VoiceService.KEY_MSG_ALERTS, msgAlerts.isChecked)
             .apply()
     }
 

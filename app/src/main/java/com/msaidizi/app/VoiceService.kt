@@ -44,12 +44,17 @@ class VoiceService : Service() {
         const val KEY_STT_URL = "stt_url"
         const val KEY_STT_KEY = "stt_key"
         const val KEY_STT_CMD = "stt_cmd"
+        const val KEY_MSG_ALERTS = "msg_alerts"
+        @Volatile var instance: VoiceService? = null
         const val DEFAULT_WAKE = "hey phone"
         const val ACTION_STOP = "com.msaidizi.app.STOP"
         private const val CHANNEL_ID = "msaidizi"
         private const val NOTIF_ID = 1
         private const val TAG = "Msaidizi"
         private const val COMMAND_TIMEOUT_MS = 50_000L
+        private const val REPLY_WAIT_MS = 15_000L        // muda wa kujibu "Nikusomee?"
+        private val YES_WORDS = setOf("ndiyo", "ndio", "soma", "nisomee", "sawa", "yes", "yeah", "read", "ok", "okay", "naam", "tafadhali", "please", "ee", "eeh")
+        private val NO_WORDS = setOf("hapana", "no", "nope", "usisome", "baadaye", "sitaki", "acha")
         private const val COMMAND_WAIT_MS = 12_000L     // muda wa kuanza kuongea baada ya mlio
         private const val DICTATION_WAIT_MS = 15_000L
         private const val DICTATION_TIMEOUT_MS = 75_000L
@@ -57,6 +62,7 @@ class VoiceService : Service() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
+    private val pending = ArrayList<IncomingMessage>()   // ujumbe uliofika wakati Msaidizi ana shughuli
     private lateinit var commands: CommandHandler
     private lateinit var input: SpeechInput
     private var model: Model? = null
@@ -75,6 +81,7 @@ class VoiceService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         commands = CommandHandler(this)
         input = SpeechInput(this)
         createChannel()
@@ -97,6 +104,7 @@ class VoiceService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        if (instance === this) instance = null
         destroyed = true
         handler.removeCallbacksAndMessages(null)
         input.cancel()
@@ -182,6 +190,11 @@ class VoiceService : Service() {
         busy = false
         commands.music.resumeAfterCommand()
         if (!destroyed) startWakeListening()
+        if (pending.isNotEmpty()) {
+            handler.postDelayed({
+                if (!busy && !destroyed && pending.isNotEmpty()) startAnnouncement(pending.removeAt(0))
+            }, 1500)
+        }
     }
 
     // ------------------------------------------------------------ amri
@@ -233,6 +246,59 @@ class VoiceService : Service() {
                 commands.speak(d.onText(text))
             }
             handler.postDelayed({ resumeWakeWord() }, 4000)
+        }
+    }
+
+    // ------------------------------------------------------------ ujumbe mpya (SMS / WhatsApp)
+
+    /** Inaitwa na MessageListener. Inauliza kama usomewe ujumbe, kisha inasubiri jibu lako sekunde 15. */
+    fun onIncomingMessage(m: IncomingMessage) {
+        handler.post {
+            if (destroyed) return@post
+            if (busy) {
+                pending.removeAll { it.key == m.key }
+                pending.add(m)
+            } else {
+                startAnnouncement(m)
+            }
+        }
+    }
+
+    private fun startAnnouncement(m: IncomingMessage) {
+        busy = true
+        stopWakeListening()
+        commands.music.pauseForCommand()
+        armGuard(60_000)
+        commands.speak("Kuna ujumbe wa ${m.app} kutoka kwa ${m.sender}. Nikusomee?")
+        commands.afterSpeech {
+            beep()
+            handler.postDelayed({ listenForReply(m) }, 250)
+        }
+    }
+
+    private fun listenForReply(m: IncomingMessage) {
+        armGuard(REPLY_WAIT_MS + 30_000)
+        listen(forCommand = true, waitMs = REPLY_WAIT_MS) { text, _ -> handleReply(m, text) }
+    }
+
+    private fun handleReply(m: IncomingMessage, text: String?) {
+        handler.removeCallbacksAndMessages(null)
+        val words = (text ?: "").lowercase().split(Regex("[^\\p{L}0-9]+")).filter { it.isNotBlank() }
+        when {
+            words.any { it in NO_WORDS } -> {
+                commands.speak("Sawa")
+                commands.afterSpeech { resumeWakeWord() }
+            }
+            words.any { it in YES_WORDS } -> {
+                commands.speak(MessageNotifier.spokenText(m))
+                armGuard(90_000)
+                commands.afterSpeech(maxWaitMs = 80_000) { resumeWakeWord() }
+            }
+            else -> {
+                // Hakuna jibu ndani ya sekunde 15: weka arifa ya kugusa-kusoma
+                MessageNotifier.post(this, m)
+                resumeWakeWord()
+            }
         }
     }
 

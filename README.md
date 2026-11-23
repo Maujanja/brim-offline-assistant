@@ -42,6 +42,13 @@ Lazima liwe maneno ya Kiingereza yaliyomo kwenye kamusi ya modeli: "hey phone", 
 \* Android haziruhusu app kuwasha data kwa API. Msaidizi anaiga mguso wako kwenye paneli ya mipangilio
 (jitihada bora; muundo wa paneli hutofautiana kwa kila simu). Ikishindwa, anakwambia ugonge mwenyewe.
 
+## Tangazo la ujumbe mpya (SMS na WhatsApp)
+Washa **Ruhusu kusoma arifa za SMS/WhatsApp** (Notification access). Msaidizi anayesikiliza akipata ujumbe mpya,
+anasema kwa sauti ile ile ya amri: "Kuna ujumbe wa WhatsApp kutoka kwa X. Nikusomee?", mlio mfupi, kisha anasubiri
+jibu lako **sekunde 15**. "Ndiyo / soma" = anausoma; "hapana" = anaacha. Usipojibu, anaweka arifa; ukiigusa anausoma.
+Msaidizi asipokuwa anasikiliza, ujumbe unaingia kama arifa ya kugusa-kusoma tu. Anasoma arifa za SMS na WhatsApp tu,
+na unaweza kuzima kipengele hiki kwa kisanduku kwenye skrini kuu.
+
 ## STT API yako (Sauti API)
 Kwenye skrini kuu, sehemu ya **STT API yangu**: weka anwani ya API (mfano `https://seva-yako/api/stt`, au anwani ya
 seva tu na `/api/stt` inaongezwa) na API key. App inarekodi sauti **kimya kimya** (WAV, 16 kHz, bila mlio wowote),

@@ -118,6 +118,20 @@
             android:layout_marginTop="12dp"
             android:text="@string/a11y_btn" />
 
+        <CheckBox
+            android:id="@+id/msgAlerts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:checked="true"
+            android:text="@string/msg_alerts" />
+
+        <Button
+            android:id="@+id/notifAccessBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/notif_access" />
+
         <Button
             android:id="@+id/lockBtn"
             android:layout_width="match_parent"

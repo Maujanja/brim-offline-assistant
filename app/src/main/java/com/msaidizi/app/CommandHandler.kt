@@ -90,13 +90,17 @@ class CommandHandler(private val ctx: Context) {
         }
     }
 
-    /** Inaita [block] pale usemi wa sasa ukiisha (au mara moja kama hakuna usemi). */
-    fun afterSpeech(block: () -> Unit) {
+    private val afterTimeout = Runnable { runAfterSpeech() }
+
+    /** Inaita [block] pale usemi wa sasa ukiisha (au mara moja kama hakuna usemi, au baada ya [maxWaitMs]). */
+    fun afterSpeech(maxWaitMs: Long = 10_000, block: () -> Unit) {
         afterSpeech = block
-        if (!speaking) runAfterSpeech() else mainHandler.postDelayed({ runAfterSpeech() }, 10_000)
+        mainHandler.removeCallbacks(afterTimeout)
+        if (!speaking) runAfterSpeech() else mainHandler.postDelayed(afterTimeout, maxWaitMs)
     }
 
     private fun runAfterSpeech() {
+        mainHandler.removeCallbacks(afterTimeout)
         val b = afterSpeech
         afterSpeech = null
         b?.invoke()
