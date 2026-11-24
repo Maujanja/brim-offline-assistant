@@ -37,6 +37,7 @@ Lazima liwe maneno ya Kiingereza yaliyomo kwenye kamusi ya modeli: "hey phone", 
 | zima simu / funga simu | Inafunga skrini (Device admin au Accessibility) |
 | piga mama / piga mama sim 2 / piga 0712… | Inapiga moja kwa moja (TelecomManager) |
 | tuma ujumbe kwa mama (kisha sema ujumbe) | Inatuma SMS moja kwa moja; ongeza "sim 2" kwa SIM ya pili |
+| soma skrini / soma ukurasa huu / read the screen | Inasoma kwa sauti maandishi yaliyo kwenye skrini iliyo wazi (Accessibility). "Nyamaza" kwenye arifa ya Msaidizi inakatiza usomaji |
 | cheza wimbo wa diamond / cheza muziki | Muziki wa kwenye simu; "unaofuata", "simamisha", "endelea", "acha muziki" |
 
 \* Android haziruhusu app kuwasha data kwa API. Msaidizi anaiga mguso wako kwenye paneli ya mipangilio
@@ -57,6 +58,13 @@ inaituma kwa `POST /api/stt` kama faili `file` pamoja na `language` (mfano `sw-T
 Bonyeza **Jaribu STT** kuthibitisha. Kisanduku cha "Tumia API hii kwa amri zote pia" kinaipa API kazi ya
 amri pia, si ujumbe wa SMS tu. Usipoweka API, simu inatumia utambuzi wake wenyewe (na mlio wa mfumo unanyamazishwa
 wakati wa kusikiliza upya). Ufunguo unahifadhiwa kwenye simu yako tu.
+
+## TTS API yako (Sauti TTS)
+Sehemu ya **TTS API yangu**: weka anwani (mfano `https://sauti-tts.vercel.app`; `/api/tts` inaongezwa yenyewe),
+API key (`sk_…`, inatumwa kwa `X-API-Key` na `Authorization: Bearer`) na jina la sauti (hiari, tazama `GET /api/voices`).
+Msaidizi anatuma `POST /api/tts` na JSON `{"text","voice"}` na kucheza faili la sauti lililorudi (maandishi marefu
+yanagawanywa vipande). Sauti hii inatumika kwa majibu yote, ujumbe unaosomwa na usomaji wa skrini. Usipoweka API,
+au ikishindwa, sauti ya TTS ya simu inatumika. **Jaribu TTS** inathibitisha mipangilio.
 
 ## Mambo ya kujua
 - SMS inatumwa **moja kwa moja bila kuthibitisha**, na jina linatafutwa kwenye anwani kwa ulinganisho

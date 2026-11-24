@@ -9,12 +9,13 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
 /**
- * Huduma ya Accessibility ya Msaidizi. Inatumika kwa mambo matatu tu:
+ * Huduma ya Accessibility ya Msaidizi. Inatumika kwa mambo manne tu:
  *  1) Kufungua apps/kamera/mipangilio kutoka nyuma (Android inaruhusu huduma za Accessibility kuanzisha skrini
  *     hata bila "Display over other apps"; hii inafanya kazi vizuri kuliko arifa ya kugusa).
  *  2) Kufunga skrini (lock).
  *  3) Kugusa swichi ya data ya simu kwenye paneli ya mipangilio (jitihada bora; muundo hutofautiana kwa kila simu).
- * Haisomi wala kuhifadhi maudhui ya skrini yako.
+ *  4) Kusoma maandishi ya skrini iliyo wazi, TU pale unapoomba kwa sauti ("soma skrini").
+ * Haihifadhi wala kutuma maudhui ya skrini popote.
  */
 class MsaidiziAccessibilityService : AccessibilityService() {
 
@@ -53,6 +54,43 @@ class MsaidiziAccessibilityService : AccessibilityService() {
     fun launch(intent: Intent) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
+    }
+
+    /** Inakusanya maandishi yanayoonekana kwenye skrini iliyo wazi, kwa mpangilio wa kusoma (juu hadi chini). */
+    fun readScreenText(maxChars: Int = 8000): String {
+        val root = rootInActiveWindow ?: return ""
+        val parts = ArrayList<String>()
+        var count = 0
+        fun walk(n: AccessibilityNodeInfo, depth: Int) {
+            if (depth > 40 || ++count > 2500) return
+            if (!n.isVisibleToUser) return
+            val own = n.text?.toString()?.trim().orEmpty()
+            val desc = n.contentDescription?.toString()?.trim().orEmpty()
+            val piece = when {
+                n.isPassword -> ""
+                own.isNotEmpty() -> own
+                n.childCount == 0 && desc.isNotEmpty() -> desc
+                else -> ""
+            }
+            if (piece.isNotEmpty() && parts.lastOrNull() != piece) parts.add(piece)
+            for (i in 0 until n.childCount) {
+                val c = n.getChild(i) ?: continue
+                walk(c, depth + 1)
+            }
+        }
+        try {
+            walk(root, 0)
+        } catch (e: Exception) {
+            Log.w(TAG, "readScreenText", e)
+        }
+        val sb = StringBuilder()
+        for (p in parts) {
+            if (sb.length + p.length > maxChars) break
+            sb.append(p)
+            if (!p.last().let { it == '.' || it == '!' || it == '?' || it == ':' }) sb.append('.')
+            sb.append(' ')
+        }
+        return sb.toString().trim()
     }
 
     fun lockScreen(): Boolean =

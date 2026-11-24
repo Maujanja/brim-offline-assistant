@@ -30,7 +30,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sttKey: EditText
     private lateinit var sttCmd: CheckBox
     private lateinit var msgAlerts: CheckBox
+    private lateinit var ttsUrl: EditText
+    private lateinit var ttsKey: EditText
+    private lateinit var ttsVoice: EditText
     private var testInput: SpeechInput? = null
+    private var testSpeaker: Speaker? = null
 
     private val prefs by lazy { getSharedPreferences(VoiceService.PREFS, MODE_PRIVATE) }
 
@@ -51,6 +55,9 @@ class MainActivity : AppCompatActivity() {
         sttKey = findViewById(R.id.sttKey)
         sttCmd = findViewById(R.id.sttCmd)
         msgAlerts = findViewById(R.id.msgAlerts)
+        ttsUrl = findViewById(R.id.ttsUrl)
+        ttsKey = findViewById(R.id.ttsKey)
+        ttsVoice = findViewById(R.id.ttsVoice)
 
         wakeInput.setText(prefs.getString(VoiceService.KEY_WAKE, VoiceService.DEFAULT_WAKE))
         if (prefs.getString(VoiceService.KEY_LANG, "sw-TZ") == "en-US") langEn.isChecked = true
@@ -60,7 +67,12 @@ class MainActivity : AppCompatActivity() {
         sttCmd.isChecked = prefs.getBoolean(VoiceService.KEY_STT_CMD, false)
         msgAlerts.isChecked = prefs.getBoolean(VoiceService.KEY_MSG_ALERTS, true)
 
+        ttsUrl.setText(prefs.getString(Speaker.Config.KEY_URL, ""))
+        ttsKey.setText(prefs.getString(Speaker.Config.KEY_KEY, ""))
+        ttsVoice.setText(prefs.getString(Speaker.Config.KEY_VOICE, ""))
+
         findViewById<Button>(R.id.sttTestBtn).setOnClickListener { testStt() }
+        findViewById<Button>(R.id.ttsTestBtn).setOnClickListener { testTts() }
 
         findViewById<Button>(R.id.startBtn).setOnClickListener {
             val wake = wakeInput.text.toString().trim().lowercase()
@@ -125,8 +137,27 @@ class MainActivity : AppCompatActivity() {
             .putString(VoiceService.KEY_STT_URL, sttUrl.text.toString().trim())
             .putString(VoiceService.KEY_STT_KEY, sttKey.text.toString().trim())
             .putBoolean(VoiceService.KEY_STT_CMD, sttCmd.isChecked)
+            .putString(Speaker.Config.KEY_URL, ttsUrl.text.toString().trim())
+            .putString(Speaker.Config.KEY_KEY, ttsKey.text.toString().trim())
+            .putString(Speaker.Config.KEY_VOICE, ttsVoice.text.toString().trim())
             .putBoolean(VoiceService.KEY_MSG_ALERTS, msgAlerts.isChecked)
             .apply()
+    }
+
+    /** Inaomba sauti ya jaribio kutoka TTS API yako na kuicheza. */
+    private fun testTts() {
+        saveSettings()
+        if (!Speaker.Config.load(this).enabled) {
+            toast(getString(R.string.tts_need))
+            return
+        }
+        status.text = getString(R.string.tts_testing)
+        testSpeaker?.shutdown()
+        val sp = Speaker(this)
+        testSpeaker = sp
+        sp.test { err ->
+            status.text = if (err == null) getString(R.string.tts_ok) else getString(R.string.tts_failed, err)
+        }
     }
 
     /** Inarekodi sekunde chache na kuzituma kwa API yako ili ujue kama mipangilio ni sahihi. */
@@ -192,6 +223,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         testInput?.cancel()
+        testSpeaker?.shutdown()
         super.onDestroy()
     }
 

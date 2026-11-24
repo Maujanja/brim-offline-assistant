@@ -19,10 +19,21 @@
     <string name="stt_heard">STT imesikia: %1$s</string>
     <string name="stt_failed">STT imeshindwa: %1$s</string>
 
+    <string name="tts_title">TTS API yangu (hiari)</string>
+    <string name="tts_hint">Weka anwani na ufunguo wa API yako ya TTS (Sauti TTS). Msaidizi anaomba sauti kwa POST /api/tts na kuicheza kwa kila jibu na usomaji wa skrini au ujumbe. Ukiweka anwani ya seva tu (mfano https://sauti-tts.vercel.app), \"/api/tts\" inaongezwa yenyewe. Usipoweka, au ikishindwa, sauti ya simu inatumika. Ufunguo unahifadhiwa kwenye simu yako tu.</string>
+    <string name="tts_url_hint">Anwani ya API (mfano https://sauti-tts.vercel.app)</string>
+    <string name="tts_key_hint">API key (sk_…)</string>
+    <string name="tts_voice_hint">Jina la sauti (hiari, angalia GET /api/voices)</string>
+    <string name="tts_test">Jaribu TTS</string>
+    <string name="tts_need">Weka URL na API key ya TTS kwanza</string>
+    <string name="tts_testing">Naomba sauti kutoka API…</string>
+    <string name="tts_ok">TTS API inafanya kazi</string>
+    <string name="tts_failed">TTS imeshindwa: %1$s</string>
+
     <string name="start">Anza kusikiliza</string>
     <string name="stop">Acha kusikiliza</string>
     <string name="a11y_btn">Washa Accessibility (kufungua apps, kupiga, data)</string>
-    <string name="a11y_desc">Inaruhusu Msaidizi kufungua apps kutoka nyuma, kufunga skrini na kugusa swichi ya data ya simu kwa amri yako ya sauti. Haisomi wala kuhifadhi maudhui ya skrini yako.</string>
+    <string name="a11y_desc">Inaruhusu Msaidizi kufungua apps kutoka nyuma, kufunga skrini, kugusa swichi ya data ya simu na kusoma maandishi ya skrini kwa sauti, kwa amri yako tu. Haihifadhi wala kutuma maudhui ya skrini popote.</string>
     <string name="a11y_hint">Chagua \"Msaidizi\" kwenye orodha kisha uiwashe. Ikikataa, fungua Settings > Apps > Msaidizi > menyu ya nukta tatu > Allow restricted settings, kisha jaribu tena.</string>
     <string name="msg_alerts">Nijulishe ujumbe mpya wa SMS na WhatsApp kwa sauti</string>
     <string name="notif_access">Ruhusu kusoma arifa za SMS/WhatsApp</string>
@@ -31,7 +42,7 @@
     <string name="lock_reason">Msaidizi anahitaji ruhusa hii ili kufunga skrini kwa amri \"zima simu\". Haisomi wala kufuta chochote. Ukitaka kuiondoa app baadaye, zima ruhusa hii kwanza kwenye Settings > Security > Device admin apps.</string>
     <string name="overlay">Ruhusu \"Display over other apps\" (hiari)</string>
     <string name="overlay_missing">Simu yako haina kipengele hiki. Haina shida: Accessibility inafanya kazi hiyo.</string>
-    <string name="help">Sema neno la kuamsha, subiri mlio mfupi, kisha sema amri. Mifano:\n\n• \"washa tochi\" / \"zima tochi\"\n• \"fungua kamera\" / \"fungua WhatsApp\"\n• \"volume juu / chini / kimya\"\n• \"fungua wifi\" / \"fungua bluetooth\"\n• \"washa data sim 1\" / \"zima data sim 2\"\n• \"zima simu\" / \"funga simu\" (inafunga skrini)\n• \"piga mama\" / \"piga mama sim 2\" / \"piga 0712345678\"\n• \"tuma ujumbe kwa mama\" kisha, baada ya mlio, sema ujumbe wenyewe. Unatumwa moja kwa moja. Ongeza \"sim 2\" kutumia SIM ya pili.\n• \"cheza wimbo wa diamond\" / \"cheza muziki\" / \"wimbo unaofuata\" / \"simamisha\" / \"endelea\" / \"acha muziki\"\n• Ujumbe mpya ukiingia (SMS/WhatsApp), Msaidizi anasema \"Kuna ujumbe kutoka kwa …, nikusomee?\". Jibu \"ndiyo\" ndani ya sekunde 15 asome, \"hapana\" aache. Usipojibu, anaweka arifa; ukiigusa anausoma.\n• \"saa ngapi\"\n\nKwa kufungua apps na kuwasha data bila kugusa, washa Accessibility ya Msaidizi.</string>
+    <string name="help">Sema neno la kuamsha, subiri mlio mfupi, kisha sema amri. Mifano:\n\n• \"washa tochi\" / \"zima tochi\"\n• \"fungua kamera\" / \"fungua WhatsApp\"\n• \"volume juu / chini / kimya\"\n• \"fungua wifi\" / \"fungua bluetooth\"\n• \"washa data sim 1\" / \"zima data sim 2\"\n• \"zima simu\" / \"funga simu\" (inafunga skrini)\n• \"piga mama\" / \"piga mama sim 2\" / \"piga 0712345678\"\n• \"tuma ujumbe kwa mama\" kisha, baada ya mlio, sema ujumbe wenyewe. Unatumwa moja kwa moja. Ongeza \"sim 2\" kutumia SIM ya pili.\n• \"cheza wimbo wa diamond\" / \"cheza muziki\" / \"wimbo unaofuata\" / \"simamisha\" / \"endelea\" / \"acha muziki\"\n• Ujumbe mpya ukiingia (SMS/WhatsApp), Msaidizi anasema \"Kuna ujumbe kutoka kwa …, nikusomee?\". Jibu \"ndiyo\" ndani ya sekunde 15 asome, \"hapana\" aache. Usipojibu, anaweka arifa; ukiigusa anausoma.\n• \"soma skrini\" / \"soma ukurasa huu\" (anasoma maandishi yaliyo kwenye skrini; \"Nyamaza\" kwenye arifa inakatiza)\n• \"saa ngapi\"\n\nKwa kufungua apps na kuwasha data bila kugusa, washa Accessibility ya Msaidizi.</string>
     <string name="status_started">Inasikiliza… sema \"%1$s\"</string>
     <string name="status_stopped">Imesimamishwa</string>
     <string name="need_mic">Ruhusa ya maikrofoni inahitajika</string>

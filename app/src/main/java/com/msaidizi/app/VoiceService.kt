@@ -48,6 +48,7 @@ class VoiceService : Service() {
         @Volatile var instance: VoiceService? = null
         const val DEFAULT_WAKE = "hey phone"
         const val ACTION_STOP = "com.msaidizi.app.STOP"
+        const val ACTION_SILENCE = "com.msaidizi.app.SILENCE"
         private const val CHANNEL_ID = "msaidizi"
         private const val NOTIF_ID = 1
         private const val TAG = "Msaidizi"
@@ -93,6 +94,10 @@ class VoiceService : Service() {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
             return START_NOT_STICKY
+        }
+        if (intent?.action == ACTION_SILENCE) {
+            commands.stopSpeaking()          // inakatiza usomaji; afterSpeech inarudisha wake word
+            return START_STICKY
         }
         val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         wakePhrase = prefs.getString(KEY_WAKE, DEFAULT_WAKE)!!.lowercase().trim().ifBlank { DEFAULT_WAKE }
@@ -224,8 +229,12 @@ class VoiceService : Service() {
         commands.execute(text)
         val dictation = commands.takeDictation()
         if (dictation == null) {
-            // subiri TTS imalize ili isijisikie yenyewe
-            handler.postDelayed({ resumeWakeWord() }, 2200)
+            // subiri usemi uishe (unaweza kuwa mrefu, mfano kusoma skrini) ili wake word isijisikie yenyewe
+            val wait = 15_000L + commands.lastReplyChars * 100L
+            armGuard(wait + 5_000)
+            commands.afterSpeech(maxWaitMs = wait) {
+                handler.postDelayed({ resumeWakeWord() }, 500)
+            }
             return
         }
         armGuard(DICTATION_TIMEOUT_MS)
@@ -333,6 +342,11 @@ class VoiceService : Service() {
             Intent(this, VoiceService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        val silence = PendingIntent.getService(
+            this, 2,
+            Intent(this, VoiceService::class.java).setAction(ACTION_SILENCE),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
         val open = PendingIntent.getActivity(
             this, 1, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
@@ -341,6 +355,7 @@ class VoiceService : Service() {
             .setContentTitle("Msaidizi anasikiliza")
             .setContentText("Sema \"$wakePhrase\" kisha amri")
             .setContentIntent(open)
+            .addAction(0, "Nyamaza", silence)
             .addAction(0, "Acha", stop)
             .setOngoing(true)
             .build()

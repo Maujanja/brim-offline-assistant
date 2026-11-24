@@ -20,8 +20,6 @@ import android.os.Looper
 import android.provider.ContactsContract
 import android.provider.MediaStore
 import android.provider.Settings
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.telecom.TelecomManager
 import android.telephony.SmsManager
 import android.telephony.SubscriptionManager
@@ -45,36 +43,12 @@ class CommandHandler(private val ctx: Context) {
     private val cameraManager = ctx.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     private val audio = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-    private var ttsReady = false
-    @Volatile private var speaking = false
-    private var afterSpeech: (() -> Unit)? = null
+    private val speaker = Speaker(ctx)
     private var pendingDictation: Dictation? = null
-    private lateinit var tts: TextToSpeech
 
-    init {
-        tts = TextToSpeech(ctx) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                val r = tts.setLanguage(Locale("sw", "TZ"))
-                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    tts.setLanguage(Locale.US)
-                }
-                tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
-                    override fun onDone(utteranceId: String?) {
-                        speaking = false
-                        mainHandler.post { runAfterSpeech() }
-                    }
-
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) {
-                        speaking = false
-                        mainHandler.post { runAfterSpeech() }
-                    }
-                })
-                ttsReady = true
-            }
-        }
-    }
+    /** Idadi ya herufi za jibu la mwisho; huduma inatumia kukadiria muda wa kusubiri usemi uishe. */
+    @Volatile var lastReplyChars = 0
+        private set
 
     private val torchId: String? by lazy {
         cameraManager.cameraIdList.firstOrNull {
@@ -84,27 +58,14 @@ class CommandHandler(private val ctx: Context) {
     }
 
     fun speak(text: String) {
-        if (ttsReady) {
-            speaking = true
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "msaidizi")
-        }
+        lastReplyChars = text.length
+        speaker.speak(text)
     }
 
-    private val afterTimeout = Runnable { runAfterSpeech() }
+    fun stopSpeaking() = speaker.stop()
 
     /** Inaita [block] pale usemi wa sasa ukiisha (au mara moja kama hakuna usemi, au baada ya [maxWaitMs]). */
-    fun afterSpeech(maxWaitMs: Long = 10_000, block: () -> Unit) {
-        afterSpeech = block
-        mainHandler.removeCallbacks(afterTimeout)
-        if (!speaking) runAfterSpeech() else mainHandler.postDelayed(afterTimeout, maxWaitMs)
-    }
-
-    private fun runAfterSpeech() {
-        mainHandler.removeCallbacks(afterTimeout)
-        val b = afterSpeech
-        afterSpeech = null
-        b?.invoke()
-    }
+    fun afterSpeech(maxWaitMs: Long = 10_000, block: () -> Unit) = speaker.afterSpeech(maxWaitMs, block)
 
     /** Inarudisha (na kufuta) amri ya kusikiliza ujumbe, kama ipo. */
     fun takeDictation(): Dictation? {
@@ -115,8 +76,7 @@ class CommandHandler(private val ctx: Context) {
 
     fun shutdown() {
         music.release()
-        tts.stop()
-        tts.shutdown()
+        speaker.shutdown()
     }
 
     // ------------------------------------------------------------------ amri
@@ -126,6 +86,11 @@ class CommandHandler(private val ctx: Context) {
         pendingDictation = null
         val reply: String = try {
             when {
+                // Kusoma maandishi ya skrini iliyo wazi: "soma skrini", "soma ukurasa huu", "read the screen"
+                has(t, "acha kusoma", "simamisha kusoma", "stop reading") -> "Sawa"
+                has(t, "soma", "read") && has(t, "skrini", "screen", "ukurasa", "kurasa", "page", "maandishi", "text") ->
+                    readScreen()
+
                 // Muziki: kucheza wimbo uliopo kwenye simu kwa jina
                 has(t, "cheza", "play") && !has(t, "fungua", "open", "store") -> music.play(songName(t))
                 has(t, "simamisha", "pause", "nyamaza") -> music.pause()
@@ -184,6 +149,13 @@ class CommandHandler(private val ctx: Context) {
     private fun has(text: String, vararg keys: String) = keys.any { text.contains(it) }
 
     // ------------------------------------------------------------------ vitendo
+
+    private fun readScreen(): String {
+        val svc = MsaidiziAccessibilityService.instance
+            ?: return "Washa Accessibility kwanza ili nisome skrini"
+        val text = svc.readScreenText()
+        return if (text.isBlank()) "Sioni maandishi yoyote kwenye skrini hii" else text
+    }
 
     private fun setTorch(on: Boolean): String {
         val id = torchId ?: return "Simu hii haina tochi"
