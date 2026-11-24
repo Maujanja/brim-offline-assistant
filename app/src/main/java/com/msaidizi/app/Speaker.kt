@@ -84,12 +84,12 @@ class Speaker(private val ctx: Context) {
                     sys.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {}
                         override fun onDone(utteranceId: String?) {
-                            if (utteranceId == sysLastId) main.post { finish(utteranceId?.substringBefore('-').toIntOrNull() ?: -1) }
+                            if (utteranceId == sysLastId) main.post { finish(utteranceId?.substringBefore('-')?.toIntOrNull() ?: -1) }
                         }
 
                         @Deprecated("Deprecated in Java")
                         override fun onError(utteranceId: String?) {
-                            if (utteranceId == sysLastId) main.post { finish(utteranceId?.substringBefore('-').toIntOrNull() ?: -1) }
+                            if (utteranceId == sysLastId) main.post { finish(utteranceId?.substringBefore('-')?.toIntOrNull() ?: -1) }
                         }
                     })
                     sysReady = true
