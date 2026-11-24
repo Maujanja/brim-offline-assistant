@@ -84,12 +84,13 @@ class CommandHandler(private val ctx: Context) {
     fun execute(raw: String) {
         val t = raw.lowercase(Locale.ROOT).trim()
         pendingDictation = null
+        var spoken = false          // ni usomaji wa skrini tu unaosemwa kwa sauti; majibu mengine ni kimya
         val reply: String = try {
             when {
                 // Kusoma maandishi ya skrini iliyo wazi: "soma skrini", "soma ukurasa huu", "read the screen"
                 has(t, "acha kusoma", "simamisha kusoma", "stop reading") -> "Sawa"
                 has(t, "soma", "read") && has(t, "skrini", "screen", "ukurasa", "kurasa", "page", "maandishi", "text") ->
-                    readScreen()
+                { spoken = true; readScreen() }
 
                 // Muziki: kucheza wimbo uliopo kwenye simu kwa jina
                 has(t, "cheza", "play") && !has(t, "fungua", "open", "store") -> music.play(songName(t))
@@ -143,7 +144,7 @@ class CommandHandler(private val ctx: Context) {
             Log.e(TAG, "execute failed", e)
             "Kuna hitilafu imetokea"
         }
-        speak(reply)
+        if (spoken) speak(reply) else { lastReplyChars = 0; Log.i(TAG, "reply (kimya): $reply") }
     }
 
     private fun has(text: String, vararg keys: String) = keys.any { text.contains(it) }
@@ -257,10 +258,7 @@ class CommandHandler(private val ctx: Context) {
                 false
             }
             mainHandler.post {
-                speak(
-                    if (ok) (if (on) "Data imewashwa" else "Data imezimwa")
-                    else "Nimefungua data lakini sijaweza kuigusa. Gusa data ya $simText mwenyewe"
-                )
+                Log.i(TAG, if (ok) "data imebadilishwa" else "data: imeshindwa kugusa swichi")
             }
         }.start()
         return "Nafungua data ya simu"

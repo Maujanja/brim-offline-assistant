@@ -176,6 +176,12 @@
             android:text="@string/notif_access" />
 
         <Button
+            android:id="@+id/batteryBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/battery_btn" />
+
+        <Button
             android:id="@+id/lockBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

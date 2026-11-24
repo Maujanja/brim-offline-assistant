@@ -13,6 +13,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -79,11 +81,33 @@ class VoiceService : Service() {
         handler.postDelayed(guard, ms)
     }
     private var destroyed = false
+    private var wakeLock: PowerManager.WakeLock? = null
+    @Volatile private var lastHeard = 0L
+    private val watchHandler = Handler(Looper.getMainLooper())
+
+    /** Mlinzi: Vosk ikinyamaza (maikrofoni ikichukuliwa na app nyingine, au mfumo ukaikatisha), anza upya. */
+    private val watchdog = object : Runnable {
+        override fun run() {
+            if (destroyed) return
+            if (!busy && model != null && SystemClock.elapsedRealtime() - lastHeard > 20_000) {
+                Log.w(TAG, "wake listening ilikwama, naanza upya")
+                startWakeListening()
+            }
+            watchHandler.postDelayed(this, 15_000)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         instance = this
         commands = CommandHandler(this)
+        try {
+            wakeLock = (getSystemService(POWER_SERVICE) as PowerManager)
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "msaidizi:listen").apply { acquire() }
+        } catch (e: Exception) {
+            Log.w(TAG, "wakelock", e)
+        }
+        watchHandler.postDelayed(watchdog, 15_000)
         input = SpeechInput(this)
         createChannel()
         val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
@@ -112,6 +136,8 @@ class VoiceService : Service() {
         if (instance === this) instance = null
         destroyed = true
         handler.removeCallbacksAndMessages(null)
+        watchHandler.removeCallbacksAndMessages(null)
+        try { wakeLock?.release() } catch (_: Exception) {}
         input.cancel()
         stopWakeListening()
         model?.close()
@@ -144,6 +170,7 @@ class VoiceService : Service() {
             val rec = Recognizer(m, 16000.0f, grammar)
             val svc = SpeechService(rec, 16000.0f)
             svc.startListening(voskListener)
+            lastHeard = SystemClock.elapsedRealtime()
             speech = svc
         } catch (e: Exception) {
             Log.e(TAG, "startWakeListening", e)
@@ -160,14 +187,16 @@ class VoiceService : Service() {
     }
 
     private val voskListener = object : VoskRecognitionListener {
-        override fun onPartialResult(hypothesis: String?) = check(hypothesis, "partial")
-        override fun onResult(hypothesis: String?) = check(hypothesis, "text")
+        override fun onPartialResult(hypothesis: String?) { lastHeard = SystemClock.elapsedRealtime(); check(hypothesis, "partial") }
+        override fun onResult(hypothesis: String?) { lastHeard = SystemClock.elapsedRealtime(); check(hypothesis, "text") }
         override fun onFinalResult(hypothesis: String?) {}
         override fun onError(exception: Exception?) {
             Log.e(TAG, "Vosk error", exception)
             handler.post { if (!busy && !destroyed) startWakeListening() }
         }
-        override fun onTimeout() {}
+        override fun onTimeout() {
+            handler.post { if (!busy && !destroyed) startWakeListening() }
+        }
 
         private fun check(json: String?, key: String) {
             val text = try {
@@ -222,7 +251,6 @@ class VoiceService : Service() {
         handler.removeCallbacksAndMessages(null)
         if (text.isNullOrBlank()) {
             if (err != null) Log.w(TAG, "command stt: $err")
-            if (err != null && err.startsWith("API")) commands.speak("API ya STT imeshindwa")
             handler.postDelayed({ resumeWakeWord() }, 1500)
             return
         }
@@ -250,9 +278,9 @@ class VoiceService : Service() {
             handler.removeCallbacksAndMessages(null)
             if (text.isNullOrBlank()) {
                 Log.w(TAG, "dictation stt: $err")
-                commands.speak(if (err != null && err.startsWith("API")) "API ya STT imeshindwa" else "Sikusikia ujumbe wowote")
+                // kimya: hakuna ujumbe uliosikika
             } else {
-                commands.speak(d.onText(text))
+                Log.i(TAG, "dictation: ${d.onText(text)}")
             }
             handler.postDelayed({ resumeWakeWord() }, 4000)
         }
@@ -295,8 +323,7 @@ class VoiceService : Service() {
         val words = (text ?: "").lowercase().split(Regex("[^\\p{L}0-9]+")).filter { it.isNotBlank() }
         when {
             words.any { it in NO_WORDS } -> {
-                commands.speak("Sawa")
-                commands.afterSpeech { resumeWakeWord() }
+                resumeWakeWord()
             }
             words.any { it in YES_WORDS } -> {
                 commands.speak(MessageNotifier.spokenText(m))

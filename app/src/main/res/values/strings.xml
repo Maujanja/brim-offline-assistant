@@ -31,6 +31,9 @@
     <string name="tts_ok">TTS API inafanya kazi</string>
     <string name="tts_failed">TTS imeshindwa: %1$s</string>
 
+    <string name="battery_btn">Zuia simu isizime Msaidizi (betri)</string>
+    <string name="battery_hint">Chagua \"Ruhusu\" / \"Allow\" ili Android isimzime Msaidizi akiwa nyuma. Kwenye baadhi ya simu (Tecno, Infinix, Xiaomi, Samsung) weka pia Msaidizi kwenye \"Auto-start\" na \"Hakuna vikwazo vya betri\".</string>
+
     <string name="start">Anza kusikiliza</string>
     <string name="stop">Acha kusikiliza</string>
     <string name="a11y_btn">Washa Accessibility (kufungua apps, kupiga, data)</string>

@@ -110,6 +110,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<Button>(R.id.batteryBtn).setOnClickListener {
+            toast(getString(R.string.battery_hint))
+            try {
+                startActivity(
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+                )
+            } catch (e: Exception) {
+                try {
+                    startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                } catch (e2: Exception) {
+                    toast(getString(R.string.overlay_missing))
+                }
+            }
+        }
+
         findViewById<Button>(R.id.lockBtn).setOnClickListener {
             val admin = ComponentName(this, LockAdminReceiver::class.java)
             startActivity(
