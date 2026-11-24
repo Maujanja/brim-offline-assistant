@@ -221,6 +221,14 @@ class MainActivity : AppCompatActivity() {
         }, 400)
     }
 
+    override fun onResume() {
+        super.onResume()
+        val err = prefs.getString(Speaker.Config.KEY_LAST_ERROR, "") ?: ""
+        if (err.isNotBlank() && Speaker.Config.load(this).enabled) {
+            status.text = getString(R.string.tts_last_failed, err)
+        }
+    }
+
     override fun onDestroy() {
         testInput?.cancel()
         testSpeaker?.shutdown()

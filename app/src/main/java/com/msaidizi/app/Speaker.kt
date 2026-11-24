@@ -31,6 +31,7 @@ class Speaker(private val ctx: Context) {
             const val KEY_URL = "tts_url"
             const val KEY_KEY = "tts_key"
             const val KEY_VOICE = "tts_voice"
+            const val KEY_LAST_ERROR = "tts_last_error"
 
             fun load(ctx: Context): Config {
                 val p = ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE)
@@ -244,6 +245,7 @@ class Speaker(private val ctx: Context) {
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "TTS API: ${e.message}")
+                    setLastError(e.message ?: e.javaClass.simpleName)
                     // Rudi kwenye sauti ya simu kwa sehemu iliyobaki
                     val rest = chunks.drop(i).joinToString(" ")
                     main.post {
@@ -292,7 +294,10 @@ class Speaker(private val ctx: Context) {
             )
             mp.setDataSource(f.absolutePath)
             mp.setOnCompletionListener { f.delete(); main.post { playNext(g) } }
-            mp.setOnErrorListener { _, _, _ -> f.delete(); main.post { playNext(g) }; true }
+            mp.setOnErrorListener { _, what, extra ->
+                setLastError("Sauti ya API haichezeki (MediaPlayer $what/$extra)")
+                f.delete(); main.post { playNext(g) }; true
+            }
             mp.setOnPreparedListener { it.start() }
             mp.prepareAsync()
         } catch (e: Exception) {
@@ -337,10 +342,16 @@ class Speaker(private val ctx: Context) {
             if (bytes.isEmpty()) throw RuntimeException("API imerudisha faili tupu")
             val f = File.createTempFile("tts", ".audio", ctx.cacheDir)
             f.writeBytes(bytes)
+            setLastError("")
             return f
         } finally {
             conn.disconnect()
         }
+    }
+
+    private fun setLastError(msg: String) {
+        ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE).edit()
+            .putString(Config.KEY_LAST_ERROR, msg).apply()
     }
 
     private fun endpoint(raw: String): String {

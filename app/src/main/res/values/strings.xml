@@ -27,6 +27,7 @@
     <string name="tts_test">Jaribu TTS</string>
     <string name="tts_need">Weka URL na API key ya TTS kwanza</string>
     <string name="tts_testing">Naomba sauti kutoka API…</string>
+    <string name="tts_last_failed">TTS API ilishindwa mara ya mwisho (sauti ya simu ilitumika): %1$s</string>
     <string name="tts_ok">TTS API inafanya kazi</string>
     <string name="tts_failed">TTS imeshindwa: %1$s</string>
 
