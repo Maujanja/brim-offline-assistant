@@ -47,6 +47,7 @@ Lazima liwe maneno ya Kiingereza yaliyomo kwenye kamusi ya modeli: "hey phone", 
 Washa **Ruhusu kusoma arifa za SMS/WhatsApp** (Notification access). Msaidizi anayesikiliza akipata ujumbe mpya,
 anasema kwa sauti ile ile ya amri: "Kuna ujumbe wa WhatsApp kutoka kwa X. Nikusomee?", mlio mfupi, kisha anasubiri
 jibu lako **sekunde 15**. "Ndiyo / soma" = anausoma; "hapana" = anaacha. Usipojibu, anaweka arifa; ukiigusa anausoma.
+Msaidizi anakujulisha tu ujumbe wa watu halisi: namba za simu za kawaida (tarakimu 7 au zaidi, hata zisizosevu) na majina yaliyo kwenye phonebook. Magroup ya WhatsApp, namba fupi (kama 100), na huduma/mitandao/benki (M-Pesa, Vodacom, Yas, n.k.) zinapuuzwa.
 Msaidizi asipokuwa anasikiliza, ujumbe unaingia kama arifa ya kugusa-kusoma tu. Anasoma arifa za SMS na WhatsApp tu,
 na unaweza kuzima kipengele hiki kwa kisanduku kwenye skrini kuu.
 
