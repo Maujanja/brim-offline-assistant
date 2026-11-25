@@ -207,6 +207,27 @@
             android:layout_height="wrap_content"
             android:text="@string/tts_test" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/cmd_title"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/cmdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/cmd_hint"
+            android:importantForAutofill="no"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/runCmdBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/cmd_run" />
+
         <Button
             android:id="@+id/startBtn"
             android:layout_width="match_parent"

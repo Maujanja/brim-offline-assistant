@@ -84,6 +84,8 @@ class CommandHandler(private val ctx: Context) {
     private var currentDone: (() -> Unit)? = null
     private var deferred = false          // true = jibu litakuja baadaye (AI), onDone itaitwa na AI
     private var aiAllowed = true
+    @Volatile var lastReply = ""
+        private set
     private var rawText = ""           // maneno ya mtumiaji kama yalivyo (herufi kubwa/ndogo), kwa ujumbe wa SMS
 
     /** Inatekeleza [raw]; [onDone] inaitwa (thread kuu) amri ikimalizika, ikiwemo ikisubiri AI. */
@@ -159,6 +161,8 @@ class CommandHandler(private val ctx: Context) {
             "Kuna hitilafu imetokea"
         }
         if (deferred) return
+        lastReply = reply
+        Trace.set(ctx, "amri \"$t\" -> ${reply.ifBlank { "(imefanyika)" }.take(120)}")
         if (spoken) speak(reply) else { lastReplyChars = 0; Log.i(TAG, "reply (kimya): $reply") }
         onDone()
     }
@@ -197,6 +201,8 @@ class CommandHandler(private val ctx: Context) {
             }
             mainHandler.post {
                 Log.i(TAG, "AI: \"$t\" -> $cmd")
+                Trace.set(ctx, "AI (${AiClient.lastProvider}) \"$t\" -> ${cmd ?: "NONE"}" +
+                    (AiClient.lastSautiError?.let { " | Sauti: $it" } ?: ""))
                 if (cmd == null) done() else run(cmd, false, done)
             }
         }.start()

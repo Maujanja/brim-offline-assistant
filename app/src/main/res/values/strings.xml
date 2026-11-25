@@ -48,6 +48,13 @@
     <string name="battery_btn">Zuia simu isizime Msaidizi (betri)</string>
     <string name="battery_hint">Chagua \"Ruhusu\" / \"Allow\" ili Android isimzime Msaidizi akiwa nyuma. Kwenye baadhi ya simu (Tecno, Infinix, Xiaomi, Samsung) weka pia Msaidizi kwenye \"Auto-start\" na \"Hakuna vikwazo vya betri\".</string>
 
+    <string name="cmd_title">Jaribu amri kwa kuandika</string>
+    <string name="cmd_hint">mfano: washa tochi</string>
+    <string name="cmd_run">Tekeleza amri</string>
+    <string name="cmd_running">Natekeleza…</string>
+    <string name="cmd_result">Jibu: %1$s</string>
+    <string name="trace_last">Tukio la mwisho: %1$s</string>
+
     <string name="start">Anza kusikiliza</string>
     <string name="stop">Acha kusikiliza</string>
     <string name="a11y_btn">Washa Accessibility (kufungua apps, kupiga, data)</string>

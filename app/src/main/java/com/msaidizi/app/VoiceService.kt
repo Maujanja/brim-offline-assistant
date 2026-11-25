@@ -210,6 +210,7 @@ class VoiceService : Service() {
 
     private fun onWakeWord() {
         if (busy || destroyed) return
+        Trace.set(this, "wake word imesikika")
         busy = true
         stopWakeListening()           // achia maikrofoni kwa hatua inayofuata
         commands.music.pauseForCommand()
@@ -251,9 +252,11 @@ class VoiceService : Service() {
         handler.removeCallbacksAndMessages(null)
         if (text.isNullOrBlank()) {
             if (err != null) Log.w(TAG, "command stt: $err")
+            Trace.set(this, "sikusikia amri (${err ?: "hakuna sauti"})")
             handler.postDelayed({ resumeWakeWord() }, 1500)
             return
         }
+        Trace.set(this, "nimesikia: \"$text\"")
         armGuard(COMMAND_TIMEOUT_MS)       // AI inaweza kuchukua sekunde chache
         commands.execute(text) { afterCommand() }
     }

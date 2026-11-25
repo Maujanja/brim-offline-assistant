@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ttsKey: EditText
     private lateinit var ttsVoice: EditText
     private var testInput: SpeechInput? = null
+    private var typedHandler: CommandHandler? = null
     private var testSpeaker: Speaker? = null
 
     private val prefs by lazy { getSharedPreferences(VoiceService.PREFS, MODE_PRIVATE) }
@@ -90,6 +91,10 @@ class MainActivity : AppCompatActivity() {
         ttsKey.setText(prefs.getString(Speaker.Config.KEY_KEY, ""))
         ttsVoice.setText(prefs.getString(Speaker.Config.KEY_VOICE, ""))
 
+        findViewById<Button>(R.id.runCmdBtn).setOnClickListener {
+            val text = findViewById<EditText>(R.id.cmdInput).text.toString().trim()
+            if (text.isNotEmpty()) runTyped(text)
+        }
         findViewById<Button>(R.id.sttTestBtn).setOnClickListener { testStt() }
         findViewById<Button>(R.id.ttsTestBtn).setOnClickListener { testTts() }
 
@@ -184,6 +189,18 @@ class MainActivity : AppCompatActivity() {
             .apply()
     }
 
+    /** Inatekeleza amri iliyoandikwa (bila kutumia sauti) na kuonyesha jibu, kutenganisha tatizo la sauti na la amri. */
+    private fun runTyped(text: String) {
+        saveSettings()
+        typedHandler?.shutdown()
+        val ch = CommandHandler(this)
+        typedHandler = ch
+        status.text = getString(R.string.cmd_running)
+        ch.execute(text) {
+            status.text = getString(R.string.cmd_result, ch.lastReply.ifBlank { "(imefanyika)" })
+        }
+    }
+
     /** Inajaribu AI: "mpigie baba" inapaswa kurudi kama "piga baba". */
     private fun testAi() {
         saveSettings()
@@ -213,6 +230,7 @@ class MainActivity : AppCompatActivity() {
         }
         status.text = getString(R.string.tts_testing)
         testSpeaker?.shutdown()
+        typedHandler?.shutdown()
         val sp = Speaker(this)
         testSpeaker = sp
         sp.test { err ->
@@ -283,6 +301,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        val trace = Trace.get(this)
+        if (trace.isNotBlank()) status.text = getString(R.string.trace_last, trace)
         val err = prefs.getString(Speaker.Config.KEY_LAST_ERROR, "") ?: ""
         if (err.isNotBlank() && Speaker.Config.load(this).enabled) {
             status.text = getString(R.string.tts_last_failed, err)
