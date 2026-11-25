@@ -38,6 +38,7 @@ Lazima liwe maneno ya Kiingereza yaliyomo kwenye kamusi ya modeli: "hey phone", 
 | piga mama / piga mama sim 2 / piga 0712… | Inapiga moja kwa moja (TelecomManager) |
 | tuma ujumbe kwa mama (kisha sema ujumbe) | Inatuma SMS moja kwa moja; ongeza "sim 2" kwa SIM ya pili |
 | soma skrini / soma ukurasa huu / read the screen | Inasoma kwa sauti maandishi yaliyo kwenye skrini iliyo wazi (Accessibility). "Nyamaza" kwenye arifa ya Msaidizi inakatiza usomaji |
+| mtumie mama ujumbe kesho nitakuja asubuhi | Jina na ujumbe kwa pamoja: SMS inatumwa moja kwa moja (AI ikiwekwa inarekebisha tahajia na uakifishaji). Pia "tuma ujumbe kwa mama kwamba …" |
 | cheza wimbo wa diamond / cheza muziki | Muziki wa kwenye simu; "unaofuata", "simamisha", "endelea", "acha muziki" |
 
 \* Android haziruhusu app kuwasha data kwa API. Msaidizi anaiga mguso wako kwenye paneli ya mipangilio

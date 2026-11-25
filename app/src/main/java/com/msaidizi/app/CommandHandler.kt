@@ -84,6 +84,7 @@ class CommandHandler(private val ctx: Context) {
     private var currentDone: (() -> Unit)? = null
     private var deferred = false          // true = jibu litakuja baadaye (AI), onDone itaitwa na AI
     private var aiAllowed = true
+    private var rawText = ""           // maneno ya mtumiaji kama yalivyo (herufi kubwa/ndogo), kwa ujumbe wa SMS
 
     /** Inatekeleza [raw]; [onDone] inaitwa (thread kuu) amri ikimalizika, ikiwemo ikisubiri AI. */
     fun execute(raw: String, onDone: () -> Unit) = run(raw, true, onDone)
@@ -92,6 +93,7 @@ class CommandHandler(private val ctx: Context) {
         currentDone = onDone
         deferred = false
         aiAllowed = ai
+        rawText = raw.trim()
         val t = canonical(raw.lowercase(Locale.ROOT).trim())
         pendingDictation = null
         var spoken = false          // ni usomaji wa skrini tu unaosemwa kwa sauti; majibu mengine ni kimya
@@ -165,10 +167,13 @@ class CommandHandler(private val ctx: Context) {
 
     private val musicWords = Regex("\\b(muziki|mziki|mzik|nyimbo|wimbo|ngoma|kibao|music|song|songs|audio)\\b")
 
+    private val sendVerbs = Regex("\\b(mtumie|nitumie|mtumieni|nitumieni|kumtumia|kunitumia)\\b", RegexOption.IGNORE_CASE)
+
     /** Inabadilisha njia mbalimbali za kusema amri kuwa umbo ambalo amri za msingi zinaelewa. */
     private fun canonical(t0: String): String {
         val t = t0
             .replace(Regex("\\b(tafadhali|naomba|nataka|hebu|please|unaweza)\\b"), " ")
+            .replace(sendVerbs, "tuma")
             .replace(Regex("\\b(mpigie|nipigie|mpigieni|nipigieni|pigia|kumpigia|kunipigia|wapigie|wapigieni)\\b"), "piga")
             .replace(Regex("\\s+"), " ").trim()
         val control = has(t, "zima", "acha", "simamisha", "nyamaza", "stop", "pause", "funga", "endelea",
@@ -417,8 +422,10 @@ class CommandHandler(private val ctx: Context) {
 
     /** "tuma ujumbe kwa mama", "tuma sms kwa 0712345678 sim 2". Ujumbe wenyewe unasikilizwa baada ya hapa. */
     private fun startSms(t0: String): String {
-        val sim = simStrict(t0)
-        val t = t0.replace(simRegex, " ")
+        val inline = parseInlineSms(rawText)
+        val header = inline?.first?.lowercase(Locale.ROOT) ?: t0
+        val sim = simStrict(header)
+        val t = header.replace(simRegex, " ")
         val digits = t.filter { it.isDigit() || it == '+' }
         val target = t
             .replace(Regex("\\b(tuma|andika|send|write|ujumbe|meseji|message|sms|text|kwa|to|ya|na|namba|simu)\\b"), " ")
@@ -439,8 +446,58 @@ class CommandHandler(private val ctx: Context) {
         }
         if (!granted(Manifest.permission.SEND_SMS)) return "Ruhusu kutuma SMS ndani ya app kwanza"
 
-        pendingDictation = Dictation { message -> sendSms(number, label, message, sim) }
+        if (inline != null) {
+            // Jina na ujumbe vimesemwa pamoja: "mtumie mama ujumbe kesho nitakuja asubuhi"
+            sendPolished(number, label, inline.second, sim, defer = true)
+            return ""
+        }
+        pendingDictation = Dictation { message -> sendPolished(number, label, message, sim, defer = false); "Inatumwa" }
         return "Sema ujumbe wako kwa $label"
+    }
+
+    private val smsConn = "(?:kwamba|unaosema|usemao|unaosomeka|that|saying|:)"
+    private val smsKw = "(?:ujumbe|sms|meseji|message|text)"
+    private val smsRegexes = listOf(
+        // "tuma ujumbe kwa mama kwamba kesho nitakuja"
+        Regex("^(?:tuma|andika|send|write)\\s+(?:$smsKw\\s+)?(?:kwa|to)\\s+(.+?)\\s+$smsConn\\s*(.+)$", RegexOption.IGNORE_CASE),
+        // "mtumie mama ujumbe kesho nitakuja" (mtumie -> tuma)
+        Regex("^(?:tuma|andika|send|write)\\s+(?:kwa\\s+)?(.+?)\\s+$smsKw\\s*(?:$smsConn\\s*)?(.+)$", RegexOption.IGNORE_CASE)
+    )
+
+    /** (sehemu ya mpokeaji, ujumbe) kama ujumbe umesemwa pamoja na amri; vinginevyo null. */
+    private fun parseInlineSms(raw: String): Pair<String, String>? {
+        val r = raw.replace(sendVerbs, "tuma").replace(Regex("\\s+"), " ").trim()
+        for (re in smsRegexes) {
+            val m = re.find(r) ?: continue
+            val msg = m.groupValues[2].trim()
+            if (msg.length >= 2) return m.groupValues[1].trim() to msg
+        }
+        return null
+    }
+
+    /** Inasafisha ujumbe (AI ikiwekwa: tahajia na uakifishaji) kisha inautuma. [defer] = tuma onDone baada ya kutuma. */
+    private fun sendPolished(number: String, label: String, message: String, sim: Int?, defer: Boolean) {
+        val done = currentDone ?: {}
+        if (defer) deferred = true
+        Thread {
+            val text = polishMessage(message)
+            mainHandler.post {
+                Log.i(TAG, sendSms(number, label, text, sim))
+                if (defer) done()
+            }
+        }.start()
+    }
+
+    private fun polishMessage(raw: String): String {
+        val local = raw.trim().replaceFirstChar { it.uppercase() }
+        if (!AiClient.config(ctx).enabled) return local
+        return try {
+            val r = AiClient.ask(ctx, AiClient.SMS_CONTEXT, raw.trim()).trim().trim('"', '`').trim()
+            if (r.isBlank() || r.equals("none", true) || r.length > raw.length * 3 + 60) local else r
+        } catch (e: Exception) {
+            Log.w(TAG, "AI polish: ${e.message}")
+            local
+        }
     }
 
     private fun sendSms(number: String, label: String, message: String, sim: Int?): String = try {

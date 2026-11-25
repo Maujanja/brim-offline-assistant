@@ -27,8 +27,10 @@ object AiClient {
 
     const val COMMAND_CONTEXT = """Wewe ni kichanganuzi cha amri za sauti za simu. Mtumiaji anaongea Kiswahili (au Kiingereza) na maandishi yanaweza kuwa na makosa ya utambuzi wa sauti. Elewa nia yake kisha ibadilishe kuwa MOJA ya amri kamili zifuatazo. Jibu amri hiyo TU, mstari mmoja, bila maelezo wala alama. Kama si amri ya simu, jibu NONE.
 Amri:
-washa tochi | zima tochi | fungua kamera | fungua video | volume juu | volume chini | kimya | saa ngapi | piga <jina au namba> | piga <jina> sim 2 | tuma ujumbe kwa <jina au namba> | cheza <jina la wimbo> | cheza muziki | simamisha | endelea | wimbo unaofuata | acha muziki | fungua <jina la app> | fungua wifi | fungua bluetooth | fungua mipangilio | washa data sim 1 | zima data sim 2 | zima simu | soma skrini
-Mifano: "mpigie baba" -> piga baba; "weka nyimbo za diamond" -> cheza diamond; "niwashie mwanga" -> washa tochi; "nifungie simu" -> zima simu."""
+washa tochi | zima tochi | fungua kamera | fungua video | volume juu | volume chini | kimya | saa ngapi | piga <jina au namba> | piga <jina> sim 2 | tuma ujumbe kwa <jina au namba> | tuma ujumbe kwa <jina au namba> kwamba <maneno ya ujumbe> | cheza <jina la wimbo> | cheza muziki | simamisha | endelea | wimbo unaofuata | acha muziki | fungua <jina la app> | fungua wifi | fungua bluetooth | fungua mipangilio | washa data sim 1 | zima data sim 2 | zima simu | soma skrini
+Mifano: "mpigie baba" -> piga baba; "mwambie mama kesho nitakuja asubuhi" -> tuma ujumbe kwa mama kwamba kesho nitakuja asubuhi; "weka nyimbo za diamond" -> cheza diamond; "niwashie mwanga" -> washa tochi; "nifungie simu" -> zima simu."""
+
+    const val SMS_CONTEXT = """Unasafisha ujumbe mfupi wa SMS uliosemwa kwa sauti na kuandikwa na utambuzi wa sauti. Rekebisha tahajia ya maneno, herufi kubwa na alama za uakifishaji tu. Usibadilishe maana, usitafsiri, usiongeze wala kupunguza maneno ya maana, wala usiongeze salamu au sahihi. Mtu wa kwanza abaki mtu wa kwanza (mfano "nitakuja" libaki "nitakuja"). Jibu ujumbe uliorekebishwa TU, bila nukuu wala maelezo."""
 
     const val CONTACT_CONTEXT = """Unasaidia kutafuta jina kwenye anwani za simu. Mtumiaji alisema jina, na utambuzi wa sauti unaweza kuwa umeliandika vibaya (herufi zinazofanana kama b/p, d/t, g/k, ch/sh/j, l/r, au irabu zilizobadilika). Kutoka kwenye orodha ya anwani, chagua jina MOJA linalosikika karibu zaidi na alichosema. Jibu jina hilo hasa kama lilivyo kwenye orodha, bila maelezo. Kama hakuna linalofanana kwa uhakika, jibu NONE."""
 
@@ -69,7 +71,7 @@ Mifano: "mpigie baba" -> piga baba; "weka nyimbo za diamond" -> cheza diamond; "
     /** Jibu la AI -> mstari mmoja safi, au null kama NONE/tupu. */
     fun clean(reply: String): String? {
         val line = reply.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() } ?: return null
-        val s = line.trim('`', '"', '\'', '*', ' ', '.').take(120)
+        val s = line.trim('`', '"', '\'', '*', ' ', '.').take(400)
         if (s.isEmpty() || s.equals("none", true) || s.startsWith("none", true)) return null
         return s
     }
