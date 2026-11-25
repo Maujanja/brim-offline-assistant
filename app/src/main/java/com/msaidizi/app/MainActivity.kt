@@ -30,6 +30,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sttKey: EditText
     private lateinit var sttCmd: CheckBox
     private lateinit var msgAlerts: CheckBox
+    private lateinit var aiUrl: EditText
+    private lateinit var aiKey: EditText
     private lateinit var ttsUrl: EditText
     private lateinit var ttsKey: EditText
     private lateinit var ttsVoice: EditText
@@ -55,6 +57,8 @@ class MainActivity : AppCompatActivity() {
         sttKey = findViewById(R.id.sttKey)
         sttCmd = findViewById(R.id.sttCmd)
         msgAlerts = findViewById(R.id.msgAlerts)
+        aiUrl = findViewById(R.id.aiUrl)
+        aiKey = findViewById(R.id.aiKey)
         ttsUrl = findViewById(R.id.ttsUrl)
         ttsKey = findViewById(R.id.ttsKey)
         ttsVoice = findViewById(R.id.ttsVoice)
@@ -67,6 +71,9 @@ class MainActivity : AppCompatActivity() {
         sttCmd.isChecked = prefs.getBoolean(VoiceService.KEY_STT_CMD, false)
         msgAlerts.isChecked = prefs.getBoolean(VoiceService.KEY_MSG_ALERTS, true)
 
+        aiUrl.setText(prefs.getString(AiClient.KEY_URL, ""))
+        aiKey.setText(prefs.getString(AiClient.KEY_KEY, ""))
+        findViewById<Button>(R.id.aiTestBtn).setOnClickListener { testAi() }
         ttsUrl.setText(prefs.getString(Speaker.Config.KEY_URL, ""))
         ttsKey.setText(prefs.getString(Speaker.Config.KEY_KEY, ""))
         ttsVoice.setText(prefs.getString(Speaker.Config.KEY_VOICE, ""))
@@ -152,11 +159,31 @@ class MainActivity : AppCompatActivity() {
             .putString(VoiceService.KEY_STT_URL, sttUrl.text.toString().trim())
             .putString(VoiceService.KEY_STT_KEY, sttKey.text.toString().trim())
             .putBoolean(VoiceService.KEY_STT_CMD, sttCmd.isChecked)
+            .putString(AiClient.KEY_URL, aiUrl.text.toString().trim())
+            .putString(AiClient.KEY_KEY, aiKey.text.toString().trim())
             .putString(Speaker.Config.KEY_URL, ttsUrl.text.toString().trim())
             .putString(Speaker.Config.KEY_KEY, ttsKey.text.toString().trim())
             .putString(Speaker.Config.KEY_VOICE, ttsVoice.text.toString().trim())
             .putBoolean(VoiceService.KEY_MSG_ALERTS, msgAlerts.isChecked)
             .apply()
+    }
+
+    /** Inajaribu AI: "mpigie baba" inapaswa kurudi kama "piga baba". */
+    private fun testAi() {
+        saveSettings()
+        if (!AiClient.config(this).enabled) {
+            toast(getString(R.string.ai_need))
+            return
+        }
+        status.text = getString(R.string.ai_testing)
+        Thread {
+            val msg = try {
+                getString(R.string.ai_ok, AiClient.clean(AiClient.ask(this, AiClient.COMMAND_CONTEXT, "mpigie baba")) ?: "NONE")
+            } catch (e: Exception) {
+                getString(R.string.ai_failed, e.message ?: e.javaClass.simpleName)
+            }
+            runOnUiThread { status.text = msg }
+        }.start()
     }
 
     /** Inaomba sauti ya jaribio kutoka TTS API yako na kuicheza. */

@@ -254,7 +254,13 @@ class VoiceService : Service() {
             handler.postDelayed({ resumeWakeWord() }, 1500)
             return
         }
-        commands.execute(text)
+        armGuard(COMMAND_TIMEOUT_MS)       // AI inaweza kuchukua sekunde chache
+        commands.execute(text) { afterCommand() }
+    }
+
+    private fun afterCommand() {
+        if (destroyed || !busy) return
+        handler.removeCallbacksAndMessages(null)
         val dictation = commands.takeDictation()
         if (dictation == null) {
             // subiri usemi uishe (unaweza kuwa mrefu, mfano kusoma skrini) ili wake word isijisikie yenyewe

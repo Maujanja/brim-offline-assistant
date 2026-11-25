@@ -81,8 +81,18 @@ class CommandHandler(private val ctx: Context) {
 
     // ------------------------------------------------------------------ amri
 
-    fun execute(raw: String) {
-        val t = raw.lowercase(Locale.ROOT).trim()
+    private var currentDone: (() -> Unit)? = null
+    private var deferred = false          // true = jibu litakuja baadaye (AI), onDone itaitwa na AI
+    private var aiAllowed = true
+
+    /** Inatekeleza [raw]; [onDone] inaitwa (thread kuu) amri ikimalizika, ikiwemo ikisubiri AI. */
+    fun execute(raw: String, onDone: () -> Unit) = run(raw, true, onDone)
+
+    private fun run(raw: String, ai: Boolean, onDone: () -> Unit) {
+        currentDone = onDone
+        deferred = false
+        aiAllowed = ai
+        val t = canonical(raw.lowercase(Locale.ROOT).trim())
         pendingDictation = null
         var spoken = false          // ni usomaji wa skrini tu unaosemwa kwa sauti; majibu mengine ni kimya
         val reply: String = try {
@@ -136,7 +146,9 @@ class CommandHandler(private val ctx: Context) {
                 // Kufungua app yoyote kwa jina
                 has(t, "fungua", "open", "anzisha", "launch") -> openApp(t)
 
-                else -> "Samahani, sijaelewa amri hiyo"
+                else -> {
+                    if (ai && AiClient.config(ctx).enabled) { askAi(t); "" } else "Samahani, sijaelewa amri hiyo"
+                }
             }
         } catch (e: SecurityException) {
             "Sina ruhusa ya kufanya hilo"
@@ -144,7 +156,85 @@ class CommandHandler(private val ctx: Context) {
             Log.e(TAG, "execute failed", e)
             "Kuna hitilafu imetokea"
         }
+        if (deferred) return
         if (spoken) speak(reply) else { lastReplyChars = 0; Log.i(TAG, "reply (kimya): $reply") }
+        onDone()
+    }
+
+    // ------------------------------------------------------------------ uelewa (maneno mbadala + AI)
+
+    private val musicWords = Regex("\\b(muziki|mziki|mzik|nyimbo|wimbo|ngoma|kibao|music|song|songs|audio)\\b")
+
+    /** Inabadilisha njia mbalimbali za kusema amri kuwa umbo ambalo amri za msingi zinaelewa. */
+    private fun canonical(t0: String): String {
+        val t = t0
+            .replace(Regex("\\b(tafadhali|naomba|nataka|hebu|please|unaweza)\\b"), " ")
+            .replace(Regex("\\b(mpigie|nipigie|mpigieni|nipigieni|pigia|kumpigia|kunipigia|wapigie|wapigieni)\\b"), "piga")
+            .replace(Regex("\\s+"), " ").trim()
+        val control = has(t, "zima", "acha", "simamisha", "nyamaza", "stop", "pause", "funga", "endelea",
+            "unaofuata", "ifuatayo", "next", "skip", "badili", "fungua", "open")
+        if (musicWords.containsMatchIn(t) && !control &&
+            has(t, "piga", "weka", "washa", "anzisha", "sikiliza", "sikia", "cheza", "play", "put", "nipe", "tafuta")
+        ) return "cheza $t"
+        return t
+    }
+
+    /** Amri haikueleweka kwa sheria: muulize AI aibadilishe kuwa amri inayojulikana, kisha itekeleze. */
+    private fun askAi(t: String) {
+        deferred = true
+        val done = currentDone ?: {}
+        Thread {
+            val cmd = try {
+                AiClient.clean(AiClient.ask(ctx, AiClient.COMMAND_CONTEXT, t))
+            } catch (e: Exception) {
+                Log.w(TAG, "AI command: ${e.message}")
+                null
+            }
+            mainHandler.post {
+                Log.i(TAG, "AI: \"$t\" -> $cmd")
+                if (cmd == null) done() else run(cmd, false, done)
+            }
+        }.start()
+    }
+
+    /** Jina halikupatikana kwa ulinganisho wa ndani: muulize AI achague kutoka kwenye orodha ya anwani. */
+    private fun aiPickContact(spoken: String, sim: Int?): String {
+        deferred = true
+        val done = currentDone ?: {}
+        Thread {
+            val pick = try {
+                val names = allContactNames()
+                if (names.isEmpty()) null
+                else AiClient.clean(
+                    AiClient.ask(ctx, AiClient.CONTACT_CONTEXT, "Alichosema: $spoken\nAnwani: " + names.joinToString("; "))
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "AI contact: ${e.message}")
+                null
+            }
+            mainHandler.post {
+                try {
+                    val m = pick?.let { findContact(it, minScore = 80) }
+                    Log.i(TAG, "AI contact: \"$spoken\" -> $pick")
+                    if (m != null) Log.i(TAG, placeCall(m.second, m.first, sim))
+                } catch (e: Exception) {
+                    Log.w(TAG, "AI contact call", e)
+                }
+                done()
+            }
+        }.start()
+        return ""
+    }
+
+    private fun allContactNames(): List<String> {
+        val out = LinkedHashSet<String>()
+        ctx.contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME), null, null, null
+        )?.use {
+            while (it.moveToNext() && out.size < 400) it.getString(0)?.takeIf { n -> n.isNotBlank() }?.let(out::add)
+        }
+        return out.toList()
     }
 
     private fun has(text: String, vararg keys: String) = keys.any { text.contains(it) }
@@ -188,7 +278,7 @@ class CommandHandler(private val ctx: Context) {
 
     /** "cheza wimbo wa diamond" -> "diamond". Tupu = cheza chochote. */
     private fun songName(t: String): String =
-        t.replace(Regex("\\b(cheza|play|wimbo|nyimbo|song|songs|music|muziki|audio|wa|ya|kwa|the|by|by the|some|a|me)\\b"), " ")
+        t.replace(Regex("\\b(cheza|play|piga|weka|washa|anzisha|sikiliza|sikia|nipe|tafuta|wimbo|nyimbo|ngoma|kibao|mziki|mzik|song|songs|music|muziki|audio|wa|ya|kwa|za|the|by|by the|some|a|me)\\b"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
 
@@ -297,7 +387,9 @@ class CommandHandler(private val ctx: Context) {
         if (!granted(Manifest.permission.READ_CONTACTS)) {
             return "Ruhusu anwani za simu ndani ya app ili nipige kwa jina"
         }
-        val match = findContact(name) ?: return "Sijapata $name kwenye anwani zako"
+        val match = findContact(name)
+            ?: return if (aiAllowed && AiClient.config(ctx).enabled) aiPickContact(name, sim)
+            else "Sijapata $name kwenye anwani zako"
         return placeCall(match.second, match.first, sim)
     }
 
@@ -389,6 +481,50 @@ class CommandHandler(private val ctx: Context) {
             .replace(Regex("\\s+"), " ")
             .trim()
 
+    /** Umbo la sauti la neno: herufi zinazochanganywa kwa urahisi zinafanywa moja. */
+    private fun fold(s: String): String {
+        val x = normalize(s).replace("ch", "x").replace("sh", "x").replace("j", "x")
+            .replace("ny", "n").replace("ng", "n")
+        return buildString {
+            for (c in x) append(
+                when (c) {
+                    'p' -> 'b'; 't' -> 'd'; 'k', 'c', 'q' -> 'g'; 'v' -> 'f'; 'r' -> 'l'
+                    'z' -> 's'; 'w' -> 'u'; 'y' -> 'i'; else -> c
+                }
+            )
+        }
+    }
+
+    private fun skeleton(s: String) = fold(s).filter { it !in "aeiou " }
+
+    private fun levSim(a: String, b: String): Double {
+        if (a.isEmpty() || b.isEmpty()) return 0.0
+        var prev = IntArray(b.length + 1) { it }
+        for (i in 1..a.length) {
+            val cur = IntArray(b.length + 1)
+            cur[0] = i
+            for (j in 1..b.length) {
+                cur[j] = minOf(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
+            }
+            prev = cur
+        }
+        return 1.0 - prev[b.length].toDouble() / maxOf(a.length, b.length)
+    }
+
+    /** 0.0..1.0: jinsi [query] inavyofanana kwa sauti na [name] (jina zima au neno lake lolote). */
+    private fun fuzzy(query: String, name: String): Double {
+        val qf = fold(query)
+        val qs = skeleton(query)
+        var best = 0.0
+        for (c in listOf(name) + name.split(" ")) {
+            if (c.length < 2) continue
+            best = maxOf(best, levSim(qf, fold(c)))
+            val cs = skeleton(c)
+            if (qs.length >= 3 && cs.length >= 3) best = maxOf(best, 0.92 * levSim(qs, cs))
+        }
+        return best
+    }
+
     /**
      * Inatafuta jina lililo karibu zaidi: sawa kabisa > linaanza na > lina neno lote > lina baadhi ya maneno.
      * [minScore] ya juu = kali zaidi (SMS inatumia 50 ili isitume kwa mtu asiye sahihi).
@@ -422,6 +558,12 @@ class CommandHandler(private val ctx: Context) {
                     else -> {
                         val hits = words.count { w -> w.length > 2 && n.contains(w) }
                         if (hits > 0) 10 * hits else 0
+                    }
+                }.let { base ->
+                    // Majina magumu: ulinganisho wa sauti (b/p, d/t, g/k, ch/sh/j, l/r…) kwa jina zima na kila neno lake
+                    if (base >= 50) base else {
+                        val sim = fuzzy(query, n)
+                        if (sim >= 0.72) maxOf(base, (sim * 55).toInt()) else base
                     }
                 }
                 if (score > bestScore) {
