@@ -240,7 +240,19 @@ class VoiceService : Service() {
     private fun listen(forCommand: Boolean, waitMs: Long, cb: (String?, String?) -> Unit) {
         val cfg = SpeechInput.Config.load(this)
         val useApi = cfg.enabled && (!forCommand || cfg.forCommands)
-        if (useApi) input.listenApi(cfg, apiLang(), waitMs, cb) else input.listenBuiltIn(language, waitMs, cb)
+        if (useApi) {
+            input.listenApi(cfg, apiLang(), waitMs) { text, err ->
+                if (text.isNullOrBlank() && err != null) {
+                    // API ya STT imeshindwa: jaribu utambuzi wa simu ili amri isipotee
+                    Trace.set(this, "STT API imeshindwa ($err), natumia utambuzi wa simu")
+                    input.listenBuiltIn(language, minOf(waitMs, 10_000L), cb)
+                } else {
+                    cb(text, err)
+                }
+            }
+        } else {
+            input.listenBuiltIn(language, waitMs, cb)
+        }
     }
 
     private fun listenForCommand() {
