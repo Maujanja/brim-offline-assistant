@@ -384,7 +384,18 @@ class VoiceService : Service() {
         }
     }
 
-    private fun buildNotification(): Notification {
+    /** Inaonyesha tukio la mwisho kwenye arifa ya Msaidizi (kutatua matatizo bila kufungua app). */
+    fun showTrace(msg: String) {
+        handler.post {
+            if (destroyed) return@post
+            try {
+                getSystemService(NotificationManager::class.java).notify(NOTIF_ID, buildNotification(msg))
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun buildNotification(trace: String? = null): Notification {
         val stop = PendingIntent.getService(
             this, 0,
             Intent(this, VoiceService::class.java).setAction(ACTION_STOP),
@@ -401,7 +412,8 @@ class VoiceService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("Msaidizi anasikiliza")
-            .setContentText("Sema \"$wakePhrase\" kisha amri")
+            .setContentText(trace ?: "Sema \"$wakePhrase\" kisha amri")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(trace ?: "Sema \"$wakePhrase\" kisha amri"))
             .setContentIntent(open)
             .addAction(0, "Nyamaza", silence)
             .addAction(0, "Acha", stop)

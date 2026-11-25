@@ -13,6 +13,7 @@ object Trace {
         val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
         ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY, "[$time] $msg").apply()
+        VoiceService.instance?.showTrace("[$time] $msg")
     }
 
     fun get(ctx: Context): String =
