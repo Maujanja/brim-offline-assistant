@@ -149,7 +149,7 @@ class CommandHandler(private val ctx: Context) {
                 has(t, "fungua", "open", "anzisha", "launch") -> openApp(t)
 
                 else -> {
-                    if (ai && AiClient.config(ctx).enabled) { askAi(t); "" } else "Samahani, sijaelewa amri hiyo"
+                    if (ai && AiClient.available(ctx)) { askAi(t); "" } else "Samahani, sijaelewa amri hiyo"
                 }
             }
         } catch (e: SecurityException) {
@@ -211,7 +211,7 @@ class CommandHandler(private val ctx: Context) {
                 val names = allContactNames()
                 if (names.isEmpty()) null
                 else AiClient.clean(
-                    AiClient.ask(ctx, AiClient.CONTACT_CONTEXT, "Alichosema: $spoken\nAnwani: " + names.joinToString("; "))
+                    AiClient.ask(ctx, AiClient.CONTACT_CONTEXT, "Alichosema: $spoken\nAnwani: " + names.joinToString("; "), allowFree = false)
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "AI contact: ${e.message}")
@@ -490,7 +490,7 @@ class CommandHandler(private val ctx: Context) {
 
     private fun polishMessage(raw: String): String {
         val local = raw.trim().replaceFirstChar { it.uppercase() }
-        if (!AiClient.config(ctx).enabled) return local
+        if (!AiClient.available(ctx)) return local
         return try {
             val r = AiClient.ask(ctx, AiClient.SMS_CONTEXT, raw.trim()).trim().trim('"', '`').trim()
             if (r.isBlank() || r.equals("none", true) || r.length > raw.length * 3 + 60) local else r

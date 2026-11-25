@@ -32,6 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var msgAlerts: CheckBox
     private lateinit var aiUrl: EditText
     private lateinit var aiKey: EditText
+    private lateinit var aiFree: CheckBox
+    private lateinit var aiFreeUrl: EditText
+    private lateinit var aiFreeKey: EditText
+    private lateinit var aiFreeModel: EditText
     private lateinit var ttsUrl: EditText
     private lateinit var ttsKey: EditText
     private lateinit var ttsVoice: EditText
@@ -59,6 +63,10 @@ class MainActivity : AppCompatActivity() {
         msgAlerts = findViewById(R.id.msgAlerts)
         aiUrl = findViewById(R.id.aiUrl)
         aiKey = findViewById(R.id.aiKey)
+        aiFree = findViewById(R.id.aiFree)
+        aiFreeUrl = findViewById(R.id.aiFreeUrl)
+        aiFreeKey = findViewById(R.id.aiFreeKey)
+        aiFreeModel = findViewById(R.id.aiFreeModel)
         ttsUrl = findViewById(R.id.ttsUrl)
         ttsKey = findViewById(R.id.ttsKey)
         ttsVoice = findViewById(R.id.ttsVoice)
@@ -73,6 +81,10 @@ class MainActivity : AppCompatActivity() {
 
         aiUrl.setText(prefs.getString(AiClient.KEY_URL, ""))
         aiKey.setText(prefs.getString(AiClient.KEY_KEY, ""))
+        aiFree.isChecked = prefs.getBoolean(AiClient.KEY_FREE, true)
+        aiFreeUrl.setText(prefs.getString(AiClient.KEY_FREE_URL, ""))
+        aiFreeKey.setText(prefs.getString(AiClient.KEY_FREE_KEY, ""))
+        aiFreeModel.setText(prefs.getString(AiClient.KEY_FREE_MODEL, ""))
         findViewById<Button>(R.id.aiTestBtn).setOnClickListener { testAi() }
         ttsUrl.setText(prefs.getString(Speaker.Config.KEY_URL, ""))
         ttsKey.setText(prefs.getString(Speaker.Config.KEY_KEY, ""))
@@ -161,6 +173,10 @@ class MainActivity : AppCompatActivity() {
             .putBoolean(VoiceService.KEY_STT_CMD, sttCmd.isChecked)
             .putString(AiClient.KEY_URL, aiUrl.text.toString().trim())
             .putString(AiClient.KEY_KEY, aiKey.text.toString().trim())
+            .putBoolean(AiClient.KEY_FREE, aiFree.isChecked)
+            .putString(AiClient.KEY_FREE_URL, aiFreeUrl.text.toString().trim())
+            .putString(AiClient.KEY_FREE_KEY, aiFreeKey.text.toString().trim())
+            .putString(AiClient.KEY_FREE_MODEL, aiFreeModel.text.toString().trim())
             .putString(Speaker.Config.KEY_URL, ttsUrl.text.toString().trim())
             .putString(Speaker.Config.KEY_KEY, ttsKey.text.toString().trim())
             .putString(Speaker.Config.KEY_VOICE, ttsVoice.text.toString().trim())
@@ -171,14 +187,16 @@ class MainActivity : AppCompatActivity() {
     /** Inajaribu AI: "mpigie baba" inapaswa kurudi kama "piga baba". */
     private fun testAi() {
         saveSettings()
-        if (!AiClient.config(this).enabled) {
+        if (!AiClient.available(this)) {
             toast(getString(R.string.ai_need))
             return
         }
         status.text = getString(R.string.ai_testing)
         Thread {
             val msg = try {
-                getString(R.string.ai_ok, AiClient.clean(AiClient.ask(this, AiClient.COMMAND_CONTEXT, "mpigie baba")) ?: "NONE")
+                val r = AiClient.clean(AiClient.ask(this, AiClient.COMMAND_CONTEXT, "mpigie baba")) ?: "NONE"
+                val note = AiClient.lastSautiError?.let { " | Sauti yangu imeshindwa: $it" } ?: ""
+                getString(R.string.ai_ok, r) + " [" + AiClient.lastProvider + "]" + note
             } catch (e: Exception) {
                 getString(R.string.ai_failed, e.message ?: e.javaClass.simpleName)
             }

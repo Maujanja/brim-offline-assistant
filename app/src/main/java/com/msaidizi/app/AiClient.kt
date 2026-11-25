@@ -13,6 +13,17 @@ import java.net.URL
 object AiClient {
     const val KEY_URL = "ai_url"
     const val KEY_KEY = "ai_key"
+    const val KEY_FREE = "ai_free"            // tumia AI ya bure ikiwa yangu haifanyi kazi
+    const val KEY_FREE_URL = "ai_free_url"
+    const val KEY_FREE_KEY = "ai_free_key"
+    const val KEY_FREE_MODEL = "ai_free_model"
+    const val DEFAULT_FREE_URL = "https://text.pollinations.ai/openai"
+    const val DEFAULT_FREE_MODEL = "openai"
+
+    @Volatile private var sautiDownUntil = 0L
+    /** Ya kuonyesha kwenye "Jaribu AI": ni AI ipi iliyojibu mara ya mwisho, na kosa la Sauti kama lipo. */
+    @Volatile var lastProvider = ""
+    @Volatile var lastSautiError: String? = null
 
     class Config(val url: String, val key: String) {
         val enabled get() = url.isNotBlank() && key.isNotBlank()
@@ -34,10 +45,82 @@ Mifano: "mpigie baba" -> piga baba; "mwambie mama kesho nitakuja asubuhi" -> tum
 
     const val CONTACT_CONTEXT = """Unasaidia kutafuta jina kwenye anwani za simu. Mtumiaji alisema jina, na utambuzi wa sauti unaweza kuwa umeliandika vibaya (herufi zinazofanana kama b/p, d/t, g/k, ch/sh/j, l/r, au irabu zilizobadilika). Kutoka kwenye orodha ya anwani, chagua jina MOJA linalosikika karibu zaidi na alichosema. Jibu jina hilo hasa kama lilivyo kwenye orodha, bila maelezo. Kama hakuna linalofanana kwa uhakika, jibu NONE."""
 
-    /** Inatuma ombi (inazuia thread; ita kutoka thread ya nyuma). Inatupa Exception ikishindwa. */
-    fun ask(ctx: Context, context: String, message: String): String {
+    private fun freeOn(ctx: Context) =
+        ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE).getBoolean(KEY_FREE, true)
+
+    /** AI yoyote ipo (yangu au ya bure)? */
+    fun available(ctx: Context) = config(ctx).enabled || freeOn(ctx)
+
+    /**
+     * Inajaribu AI yako (Sauti); ikishindwa au haijawekwa, na [allowFree], inatumia AI ya bure ya mbadala.
+     * [allowFree] = false kwa data nyeti (orodha ya anwani): inakwenda kwa seva yako tu.
+     * Inazuia thread; ita kutoka thread ya nyuma. Inatupa Exception ikishindwa zote.
+     */
+    fun ask(ctx: Context, context: String, message: String, allowFree: Boolean = true): String {
         val cfg = config(ctx)
-        if (!cfg.enabled) throw RuntimeException("AI haijawekwa")
+        lastSautiError = null
+        if (cfg.enabled && System.currentTimeMillis() >= sautiDownUntil) {
+            try {
+                val r = askSauti(ctx, cfg, context, message)
+                lastProvider = "Sauti"
+                return r
+            } catch (e: Exception) {
+                lastSautiError = e.message ?: e.javaClass.simpleName
+                sautiDownUntil = System.currentTimeMillis() + 5 * 60_000L   // usijaribu tena kwa dakika 5
+            }
+        } else if (cfg.enabled) {
+            lastSautiError = "imepumzishwa baada ya kushindwa"
+        }
+        if (!allowFree || !freeOn(ctx)) throw RuntimeException(lastSautiError ?: "AI haijawekwa")
+        val r = askFree(ctx, context, message)
+        lastProvider = "AI ya bure"
+        return r
+    }
+
+    private fun askFree(ctx: Context, context: String, message: String): String {
+        val p = ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE)
+        var u = p.getString(KEY_FREE_URL, "")!!.trim().ifBlank { DEFAULT_FREE_URL }
+        if (!u.startsWith("http://") && !u.startsWith("https://")) u = "https://$u"
+        u = u.trimEnd('/')
+        val endpoint = if (u.endsWith("/chat/completions") || u.endsWith("/openai")) u else "$u/chat/completions"
+        val key = p.getString(KEY_FREE_KEY, "")!!.trim()
+        val model = p.getString(KEY_FREE_MODEL, "")!!.trim().ifBlank { DEFAULT_FREE_MODEL }
+        val body = JSONObject()
+            .put("model", model)
+            .put("temperature", 0.2)
+            .put(
+                "messages", JSONArray()
+                    .put(JSONObject().put("role", "system").put("content", context))
+                    .put(JSONObject().put("role", "user").put("content", message))
+            )
+        val conn = URL(endpoint).openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.connectTimeout = 8000
+            conn.readTimeout = 20000
+            if (key.isNotBlank()) conn.setRequestProperty("Authorization", "Bearer $key")
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val err = try { conn.errorStream?.bufferedReader()?.readText()?.take(160) } catch (_: Exception) { null }
+                throw RuntimeException("AI ya bure $code ${err ?: ""}".trim())
+            }
+            val text = conn.inputStream.bufferedReader().readText()
+            return try {
+                JSONObject(text).getJSONArray("choices").getJSONObject(0).getJSONObject("message")
+                    .getString("content").ifBlank { throw RuntimeException("AI ya bure haikujibu") }
+            } catch (e: org.json.JSONException) {
+                text.takeIf { it.isNotBlank() && !it.trimStart().startsWith("{") }
+                    ?: throw RuntimeException("AI ya bure imerudisha jibu lisilojulikana")
+            }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun askSauti(ctx: Context, cfg: Config, context: String, message: String): String {
         val body = JSONObject()
             .put("context", context)
             .put("message", message)
