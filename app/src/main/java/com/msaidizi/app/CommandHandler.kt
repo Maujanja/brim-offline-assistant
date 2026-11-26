@@ -1,13 +1,16 @@
 package com.msaidizi.app
 
 import android.Manifest
+import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
@@ -450,7 +453,7 @@ class CommandHandler(private val ctx: Context) {
             number = m.second
             label = m.first
         }
-        if (!granted(Manifest.permission.SEND_SMS)) return "Ruhusu kutuma SMS ndani ya app kwanza"
+        if (!granted(Manifest.permission.SEND_SMS)) return "Sina ruhusa ya kutuma SMS. Fungua Mipangilio > Apps > Msaidizi > Ruhusa > SMS. Android 13+: kwenye Msaidizi bonyeza ⋮ juu kulia > Ruhusu mipangilio iliyozuiwa"
 
         if (inline != null) {
             // Jina na ujumbe vimesemwa pamoja: "mtumie mama ujumbe kesho nitakuja asubuhi"
@@ -509,12 +512,49 @@ class CommandHandler(private val ctx: Context) {
     private fun sendSms(number: String, label: String, message: String, sim: Int?): String = try {
         val sm = smsManager(sim)
         val parts = sm.divideMessage(message)
-        if (parts.size > 1) sm.sendMultipartTextMessage(number, null, parts, null, null)
-        else sm.sendTextMessage(number, null, message, null, null)
+        val action = "com.msaidizi.app.SMS_SENT_" + System.nanoTime()
+        val app = ctx.applicationContext
+        var okCount = 0
+        var reported = false
+        lateinit var receiver: BroadcastReceiver
+        fun finishReport(msg: String) {
+            if (reported) return
+            reported = true
+            Trace.set(app, msg)
+            try { app.unregisterReceiver(receiver) } catch (_: Exception) {}
+        }
+        receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, i: Intent) {
+                if (resultCode == Activity.RESULT_OK) {
+                    if (++okCount >= parts.size) finishReport("SMS imetumwa kwa $label")
+                } else {
+                    finishReport("SMS imeshindwa kwa $label: ${smsError(resultCode)}")
+                }
+            }
+        }
+        ContextCompat.registerReceiver(app, receiver, IntentFilter(action), ContextCompat.RECEIVER_NOT_EXPORTED)
+        mainHandler.postDelayed({ finishReport("SMS kwa $label: sikupata uthibitisho kutoka kwa mfumo") }, 60_000)
+        val pi = PendingIntent.getBroadcast(
+            app, 0, Intent(action).setPackage(app.packageName),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        Trace.set(app, "natuma SMS kwa $label ($number)${if (sim != null) " SIM $sim" else ""}…")
+        if (parts.size > 1) sm.sendMultipartTextMessage(number, null, parts, ArrayList<PendingIntent>(parts.map { pi }), null)
+        else sm.sendTextMessage(number, null, message, pi, null)
         "Nimetuma ujumbe kwa $label: $message"
     } catch (e: Exception) {
         Log.e(TAG, "sendSms", e)
+        Trace.set(ctx, "SMS imeshindwa kutuma: ${e.message ?: e.javaClass.simpleName}")
         "Imeshindwa kutuma ujumbe: ${e.message}"
+    }
+
+    private fun smsError(code: Int) = when (code) {
+        SmsManager.RESULT_ERROR_GENERIC_FAILURE -> "kosa la jumla (angalia salio/SIM)"
+        SmsManager.RESULT_ERROR_RADIO_OFF -> "simu iko kwenye hali ya ndege"
+        SmsManager.RESULT_ERROR_NULL_PDU -> "ujumbe tupu"
+        SmsManager.RESULT_ERROR_NO_SERVICE -> "hakuna mtandao"
+        SmsManager.RESULT_ERROR_LIMIT_EXCEEDED -> "kikomo cha SMS kimezidi"
+        else -> "kosa $code"
     }
 
     @Suppress("DEPRECATION")
