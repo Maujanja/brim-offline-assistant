@@ -48,6 +48,15 @@
     <string name="battery_btn">Zuia simu isizime Msaidizi (betri)</string>
     <string name="battery_hint">Chagua \"Ruhusu\" / \"Allow\" ili Android isimzime Msaidizi akiwa nyuma. Kwenye baadhi ya simu (Tecno, Infinix, Xiaomi, Samsung) weka pia Msaidizi kwenye \"Auto-start\" na \"Hakuna vikwazo vya betri\".</string>
 
+    <string name="assist_title">Msaidizi kamili (mazungumzo na maswali)</string>
+    <string name="assist_hint">Baada ya wake word unaweza kuongea kawaida, mfano \"leo kulikua na ujumbe gani?\" au \"kuna aliyeomba huduma leo?\". Msaidizi anatumia AI, ujumbe wa watu halisi wa siku 3 na mazungumzo yako ya siku 2. Mara chache kwa siku anakuuliza swali kwa arifa (unajibu kwa sauti au kwa kuandika). Ujumbe na kumbukumbu vinatumwa kwa AI yako ya Sauti tu.</string>
+    <string name="ai_private">Ruhusu AI ya bure (ya umma) kupokea ujumbe wangu na majibu yangu</string>
+    <string name="checkin_on">Msaidizi aniulize maswali mara chache kwa siku</string>
+    <string name="checkin_now">Jaribu: niulize swali sasa</string>
+    <string name="checkin_need_service">Bonyeza \"Anza kusikiliza\" kwanza</string>
+    <string name="checkin_asking">Naomba swali kutoka kwa AI… litakuja kama arifa</string>
+    <string name="memory_clear">Futa kumbukumbu na ujumbe uliohifadhiwa</string>
+    <string name="memory_cleared">Kumbukumbu imefutwa</string>
     <string name="cmd_title">Jaribu amri kwa kuandika</string>
     <string name="cmd_hint">mfano: washa tochi</string>
     <string name="cmd_run">Tekeleza amri</string>

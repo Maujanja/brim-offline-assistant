@@ -211,6 +211,44 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
+            android:text="@string/assist_title"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/assist_hint" />
+
+        <CheckBox
+            android:id="@+id/aiPrivate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ai_private" />
+
+        <CheckBox
+            android:id="@+id/checkinOn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/checkin_on" />
+
+        <Button
+            android:id="@+id/checkinNowBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/checkin_now" />
+
+        <Button
+            android:id="@+id/clearMemBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/memory_clear" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
             android:text="@string/cmd_title"
             android:textStyle="bold" />
 

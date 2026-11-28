@@ -17,7 +17,13 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.RemoteInput
 import androidx.core.app.ServiceCompat
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import kotlin.random.Random
 import org.json.JSONArray
 import org.json.JSONObject
 import org.vosk.LibVosk
@@ -51,6 +57,15 @@ class VoiceService : Service() {
         const val DEFAULT_WAKE = "hey phone"
         const val ACTION_STOP = "com.msaidizi.app.STOP"
         const val ACTION_SILENCE = "com.msaidizi.app.SILENCE"
+        const val ACTION_ANSWER = "com.msaidizi.app.ANSWER"        // jibu swali la check-in kwa sauti
+        const val ACTION_REPLY = "com.msaidizi.app.REPLY"          // jibu la kuandika (RemoteInput)
+        private const val CHECKIN_CHANNEL = "msaidizi_checkin"
+        private const val CHECKIN_NOTIF_ID = 20
+        private const val REPLY_KEY = "answer"
+        private const val KEY_NEXT = "checkin_next"
+        private const val KEY_DAY = "checkin_day"
+        private const val KEY_COUNT = "checkin_count"
+        private const val MAX_PER_DAY = 4
         private const val CHANNEL_ID = "msaidizi"
         private const val NOTIF_ID = 1
         private const val TAG = "Msaidizi"
@@ -97,6 +112,137 @@ class VoiceService : Service() {
         }
     }
 
+    // ------------------------------------------------------------ check-in (maswali ya arifa)
+
+    private val checkinTick = object : Runnable {
+        override fun run() {
+            try {
+                checkinCheck()
+            } catch (e: Exception) {
+                Log.w(TAG, "checkin", e)
+            }
+            if (!destroyed) watchHandler.postDelayed(this, 5 * 60_000L)
+        }
+    }
+
+    /** Mara kwa mara na si kila wakati: saa 1 asubuhi hadi saa 3 usiku, pengo la saa 2.5-4.5, kiwango cha juu 4 kwa siku. */
+    private fun checkinCheck() {
+        if (destroyed || busy || !Assistant.checkinOn(this) || !Assistant.chatReady(this)) return
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        if (hour < 7 || hour >= 21) return
+        val next = prefs.getLong(KEY_NEXT, 0L)
+        if (next == 0L || now - next > 6 * 3600_000L) {
+            // mara ya kwanza au baada ya usiku: subiri kidogo (si saa 7:00 kamili)
+            prefs.edit().putLong(KEY_NEXT, now + Random.nextLong(5, 40) * 60_000L).apply()
+            return
+        }
+        if (now < next) return
+        val day = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(now))
+        val count = if (prefs.getString(KEY_DAY, "") == day) prefs.getInt(KEY_COUNT, 0) else 0
+        if (count >= MAX_PER_DAY) return
+        askCheckin(manual = false)
+    }
+
+    /** Inaomba AI swali na kulituma kama arifa. [manual] = kutoka kwenye kitufe cha kujaribu. */
+    fun askCheckin(manual: Boolean) {
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        // weka muda unaofuata mapema ili usirudiwe wakati AI inafikiria
+        prefs.edit().putLong(KEY_NEXT, now + Random.nextLong(150, 270) * 60_000L).apply()
+        Thread {
+            val q = Assistant.checkinQuestion(this)
+            handler.post {
+                if (destroyed) return@post
+                if (q == null) {
+                    // hakuna swali sasa au AI imeshindwa: jaribu tena baada ya saa moja
+                    prefs.edit().putLong(KEY_NEXT, System.currentTimeMillis() + 60 * 60_000L).apply()
+                    Trace.set(this, "check-in: hakuna swali sasa" + (AiClient.lastSautiError?.let { " (Sauti: $it)" } ?: ""))
+                    return@post
+                }
+                val day = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+                val count = if (prefs.getString(KEY_DAY, "") == day) prefs.getInt(KEY_COUNT, 0) else 0
+                if (!manual) prefs.edit().putString(KEY_DAY, day).putInt(KEY_COUNT, count + 1).apply()
+                postCheckin(q)
+                Trace.set(this, "check-in: \"$q\"")
+            }
+        }.start()
+    }
+
+    private fun postCheckin(question: String) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            val ch = NotificationChannel(CHECKIN_CHANNEL, "Maswali ya Msaidizi", NotificationManager.IMPORTANCE_DEFAULT)
+            getSystemService(NotificationManager::class.java).createNotificationChannel(ch)
+        }
+        val answer = PendingIntent.getService(
+            this, 10, Intent(this, VoiceService::class.java).setAction(ACTION_ANSWER),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val mutable = if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0
+        val reply = PendingIntent.getService(
+            this, 11, Intent(this, VoiceService::class.java).setAction(ACTION_REPLY),
+            mutable or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val remote = RemoteInput.Builder(REPLY_KEY).setLabel("Andika jibu lako").build()
+        val typeAction = NotificationCompat.Action.Builder(0, "Andika jibu", reply).addRemoteInput(remote).build()
+        val n = NotificationCompat.Builder(this, CHECKIN_CHANNEL)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentTitle("Msaidizi")
+            .setContentText(question)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(question))
+            .setContentIntent(answer)
+            .addAction(0, "Jibu kwa sauti", answer)
+            .addAction(typeAction)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        getSystemService(NotificationManager::class.java).notify(CHECKIN_NOTIF_ID, n)
+    }
+
+    private fun checkinStatus(text: String) {
+        val n = NotificationCompat.Builder(this, CHECKIN_CHANNEL)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentTitle("Msaidizi")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .build()
+        try { getSystemService(NotificationManager::class.java).notify(CHECKIN_NOTIF_ID, n) } catch (_: Exception) {}
+    }
+
+    /** Umegusa arifa au "Jibu kwa sauti": mlio, kisha ongea jibu lako; Msaidizi anajibu kwa sauti. */
+    private fun answerByVoice() {
+        if (busy || destroyed) return
+        getSystemService(NotificationManager::class.java).cancel(CHECKIN_NOTIF_ID)
+        busy = true
+        stopWakeListening()
+        commands.music.pauseForCommand()
+        beep()
+        armGuard(COMMAND_TIMEOUT_MS)
+        handler.postDelayed({
+            listen(forCommand = true, waitMs = DICTATION_WAIT_MS) { text, err ->
+                handler.removeCallbacksAndMessages(null)
+                if (text.isNullOrBlank()) {
+                    Trace.set(this, "sikusikia jibu (${err ?: "hakuna sauti"})")
+                    resumeWakeWord()
+                } else {
+                    Trace.set(this, "jibu lako: \"$text\"")
+                    armGuard(COMMAND_TIMEOUT_MS)
+                    commands.converse(text, allowCommands = false, aloud = true) { afterCommand() }
+                }
+            }
+        }, 250)
+    }
+
+    /** Jibu la kuandika kwenye arifa: linahifadhiwa kwenye kumbukumbu, na jibu la Msaidizi linaonekana kwenye arifa hiyo. */
+    private fun answerTyped(text: String) {
+        Trace.set(this, "jibu lako (kuandika): \"$text\"")
+        commands.converse(text, allowCommands = false, aloud = false) { reply ->
+            checkinStatus(reply ?: "Nimepokea jibu lako, nitalikumbuka.")
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -108,6 +254,7 @@ class VoiceService : Service() {
             Log.w(TAG, "wakelock", e)
         }
         watchHandler.postDelayed(watchdog, 15_000)
+        watchHandler.postDelayed(checkinTick, 60_000)
         input = SpeechInput(this)
         createChannel()
         val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0
@@ -118,6 +265,15 @@ class VoiceService : Service() {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
             return START_NOT_STICKY
+        }
+        if (intent?.action == ACTION_ANSWER) {
+            answerByVoice()
+            return START_STICKY
+        }
+        if (intent?.action == ACTION_REPLY) {
+            val typed = RemoteInput.getResultsFromIntent(intent)?.getCharSequence(REPLY_KEY)?.toString()
+            if (!typed.isNullOrBlank()) answerTyped(typed)
+            return START_STICKY
         }
         if (intent?.action == ACTION_SILENCE) {
             commands.stopSpeaking()          // inakatiza usomaji; afterSpeech inarudisha wake word

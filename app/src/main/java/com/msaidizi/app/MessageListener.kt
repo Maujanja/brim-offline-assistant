@@ -44,7 +44,6 @@ class MessageListener : NotificationListenerService() {
 
     private fun handle(sbn: StatusBarNotification) {
         val prefs = getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean(VoiceService.KEY_MSG_ALERTS, true)) return
 
         val pkg = sbn.packageName
         val smsPkg = Telephony.Sms.getDefaultSmsPackage(this)
@@ -75,6 +74,10 @@ class MessageListener : NotificationListenerService() {
         if (seen[sbn.key] == signature) return        // arifa hiyo hiyo iliyosasishwa
         seen[sbn.key] = signature
 
+        // Kumbukumbu ya siku 3 ili uweze kuuliza "leo kulikua na ujumbe gani?" (hata kama sauti ya taarifa imezimwa)
+        MessageLog.add(this, app, sender, text)
+
+        if (!prefs.getBoolean(VoiceService.KEY_MSG_ALERTS, true)) return
         val msg = IncomingMessage(app, sender, text, sbn.key)
         val voice = VoiceService.instance
         if (voice != null) voice.onIncomingMessage(msg) else MessageNotifier.post(this, msg)

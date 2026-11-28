@@ -61,6 +61,12 @@ Bonyeza **Jaribu STT** kuthibitisha. Kisanduku cha "Tumia API hii kwa amri zote 
 amri pia, si ujumbe wa SMS tu. Usipoweka API, simu inatumia utambuzi wake wenyewe (na mlio wa mfumo unanyamazishwa
 wakati wa kusikiliza upya). Ufunguo unahifadhiwa kwenye simu yako tu.
 
+## Msaidizi kamili (mazungumzo, kumbukumbu, maswali)
+- Ongea kawaida baada ya wake word: "leo kulikua na ujumbe gani?", "kuna aliyetaka huduma?", "nimechoka leo". Amri fupi (washa tochi, piga mama) bado zinafanya kazi kwa sheria; maongezi marefu yanaenda kwa AI, ambayo pia inaweza kuamua kufanya amri ya simu.
+- Ujumbe wa watu halisi (SMS/WhatsApp, bila magroup na huduma) unahifadhiwa siku 3, na mazungumzo/majibu yako siku 2, kwenye simu yako tu.
+- Mara chache kwa siku (saa 1 asubuhi hadi saa 3 usiku, pengo la saa 2.5-4.5, hadi 4 kwa siku) Msaidizi anakuuliza swali kwa arifa, linalotengenezwa na AI kulingana na muda, kumbukumbu na ujumbe, bila kurudia. Unajibu kwa sauti au kwa kuandika kwenye arifa.
+- Faragha: data hii inatumwa kwa AI yako ya Sauti tu. AI ya bure ya umma inapokea tu ukiruhusu kisanduku maalumu (kimezimwa mwanzoni).
+
 ## TTS API yako (Sauti TTS)
 Sehemu ya **TTS API yangu**: weka anwani (mfano `https://sauti-tts.vercel.app`; `/api/tts` inaongezwa yenyewe),
 API key (`sk_…`, inatumwa kwa `X-API-Key` na `Authorization: Bearer`) na jina la sauti (hiari, tazama `GET /api/voices`).

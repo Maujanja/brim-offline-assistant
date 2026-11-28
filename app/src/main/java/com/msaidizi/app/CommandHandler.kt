@@ -101,6 +101,11 @@ class CommandHandler(private val ctx: Context) {
         rawText = raw.trim()
         val t = canonical(raw.lowercase(Locale.ROOT).trim())
         pendingDictation = null
+        // Maongezi ya kawaida (si amri fupi): AI ya mazungumzo, yenye kumbukumbu na ujumbe wa leo
+        if (ai && Assistant.chatReady(ctx) && looksConversational(t)) {
+            askAi(rawText)
+            return
+        }
         var spoken = false          // ni usomaji wa skrini tu unaosemwa kwa sauti; majibu mengine ni kimya
         val reply: String = try {
             when {
@@ -192,21 +197,55 @@ class CommandHandler(private val ctx: Context) {
     }
 
     /** Amri haikueleweka kwa sheria: muulize AI aibadilishe kuwa amri inayojulikana, kisha itekeleze. */
-    private fun askAi(t: String) {
+    private fun askAi(text: String) {
         deferred = true
         val done = currentDone ?: {}
+        converse(text, allowCommands = true, aloud = true) { done() }
+    }
+
+    private val cmdVerbs = setOf(
+        "washa", "zima", "zimisha", "fungua", "funga", "piga", "mpigie", "nipigie", "pigia", "cheza", "weka",
+        "sikiliza", "tuma", "mtumie", "nitumie", "andika", "soma", "nisomee", "simamisha", "nyamaza", "endelea",
+        "acha", "badili", "ongeza", "punguza", "kimya", "volume", "anzisha", "nipe",
+        "open", "play", "call", "send", "turn", "stop", "read", "pause", "next", "resume"
+    )
+    private val chatFillers = setOf("hey", "sasa", "basi", "tafadhali", "naomba", "hebu", "ok", "okay", "sawa", "oya", "mambo", "please")
+    private val questionWords = listOf("je", "nini", "gani", "vipi", "kwanini", "lini", "nani", "niambie", "eleza", "nimeamka", "leo", "jana")
+
+    /** Si amri fupi ya kuanza na kitenzi cha amri: ni maongezi (mfano "kuna ujumbe gani leo"). */
+    private fun looksConversational(t: String): Boolean {
+        val words = t.split(" ").filter { it.isNotBlank() && it !in chatFillers }
+        if (words.isEmpty()) return false
+        if (words.first() in cmdVerbs) return false
+        if (words.size >= 4) return true
+        return words.size >= 3 && words.any { it in questionWords }
+    }
+
+    /**
+     * Mazungumzo na AI (kwa thread ya nyuma). [allowCommands]: AI inaweza kurudisha amri ya simu.
+     * [aloud]: jibu lisomwe kwa sauti. [onDone] inaitwa na jibu (au null).
+     */
+    fun converse(text: String, allowCommands: Boolean, aloud: Boolean, onDone: (String?) -> Unit) {
         Thread {
-            val cmd = try {
-                AiClient.clean(AiClient.ask(ctx, AiClient.COMMAND_CONTEXT, t))
+            val reply = try {
+                Assistant.respond(ctx, text, allowCommands)
             } catch (e: Exception) {
-                Log.w(TAG, "AI command: ${e.message}")
+                Log.w(TAG, "converse", e)
                 null
             }
             mainHandler.post {
-                Log.i(TAG, "AI: \"$t\" -> $cmd")
-                Trace.set(ctx, "AI (${AiClient.lastProvider}) \"$t\" -> ${cmd ?: "NONE"}" +
+                Trace.set(ctx, "AI (${AiClient.lastProvider}) \"${text.take(60)}\" -> " +
+                    (reply?.command?.let { "CMD $it" } ?: reply?.text?.take(100) ?: "hakuna jibu") +
                     (AiClient.lastSautiError?.let { " | Sauti: $it" } ?: ""))
-                if (cmd == null) done() else run(cmd, false, done)
+                when {
+                    reply == null -> onDone(null)
+                    reply.command != null -> run(reply.command, false) { onDone(null) }
+                    else -> {
+                        lastReply = reply.text ?: ""
+                        if (aloud) speak(lastReply)
+                        onDone(reply.text)
+                    }
+                }
             }
         }.start()
     }
