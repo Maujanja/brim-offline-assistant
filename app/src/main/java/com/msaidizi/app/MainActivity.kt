@@ -26,18 +26,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var langSw: RadioButton
     private lateinit var langEn: RadioButton
     private lateinit var status: TextView
-    private lateinit var sttUrl: EditText
-    private lateinit var sttKey: EditText
-    private lateinit var sttCmd: CheckBox
     private lateinit var msgAlerts: CheckBox
     private lateinit var checkinOn: CheckBox
     private lateinit var grokKey: EditText
-    private lateinit var ttsUrl: EditText
-    private lateinit var ttsKey: EditText
-    private lateinit var ttsVoice: EditText
-    private var testInput: SpeechInput? = null
     private var typedHandler: CommandHandler? = null
-    private var testSpeaker: Speaker? = null
 
     private val prefs by lazy { getSharedPreferences(VoiceService.PREFS, MODE_PRIVATE) }
 
@@ -54,22 +46,13 @@ class MainActivity : AppCompatActivity() {
         langSw = findViewById(R.id.langSw)
         langEn = findViewById(R.id.langEn)
         status = findViewById(R.id.status)
-        sttUrl = findViewById(R.id.sttUrl)
-        sttKey = findViewById(R.id.sttKey)
-        sttCmd = findViewById(R.id.sttCmd)
         msgAlerts = findViewById(R.id.msgAlerts)
         checkinOn = findViewById(R.id.checkinOn)
         grokKey = findViewById(R.id.grokKey)
-        ttsUrl = findViewById(R.id.ttsUrl)
-        ttsKey = findViewById(R.id.ttsKey)
-        ttsVoice = findViewById(R.id.ttsVoice)
 
         wakeInput.setText(prefs.getString(VoiceService.KEY_WAKE, VoiceService.DEFAULT_WAKE))
         if (prefs.getString(VoiceService.KEY_LANG, "sw-TZ") == "en-US") langEn.isChecked = true
         else langSw.isChecked = true
-        sttUrl.setText(prefs.getString(VoiceService.KEY_STT_URL, ""))
-        sttKey.setText(prefs.getString(VoiceService.KEY_STT_KEY, ""))
-        sttCmd.isChecked = prefs.getBoolean(VoiceService.KEY_STT_CMD, false)
         msgAlerts.isChecked = prefs.getBoolean(VoiceService.KEY_MSG_ALERTS, true)
 
         checkinOn.isChecked = prefs.getBoolean(Assistant.KEY_CHECKIN, true)
@@ -89,16 +72,11 @@ class MainActivity : AppCompatActivity() {
         }
         grokKey.setText(prefs.getString(AiClient.KEY_FREE_KEY, ""))
         findViewById<Button>(R.id.aiTestBtn).setOnClickListener { testAi() }
-        ttsUrl.setText(prefs.getString(Speaker.Config.KEY_URL, ""))
-        ttsKey.setText(prefs.getString(Speaker.Config.KEY_KEY, ""))
-        ttsVoice.setText(prefs.getString(Speaker.Config.KEY_VOICE, ""))
 
         findViewById<Button>(R.id.runCmdBtn).setOnClickListener {
             val text = findViewById<EditText>(R.id.cmdInput).text.toString().trim()
             if (text.isNotEmpty()) runTyped(text)
         }
-        findViewById<Button>(R.id.sttTestBtn).setOnClickListener { testStt() }
-        findViewById<Button>(R.id.ttsTestBtn).setOnClickListener { testTts() }
 
         findViewById<Button>(R.id.startBtn).setOnClickListener {
             val wake = wakeInput.text.toString().trim().lowercase()
@@ -175,16 +153,16 @@ class MainActivity : AppCompatActivity() {
         prefs.edit()
             .putString(VoiceService.KEY_WAKE, wakeInput.text.toString().trim().lowercase())
             .putString(VoiceService.KEY_LANG, if (langEn.isChecked) "en-US" else "sw-TZ")
-            .putString(VoiceService.KEY_STT_URL, sttUrl.text.toString().trim())
-            .putString(VoiceService.KEY_STT_KEY, sttKey.text.toString().trim())
-            .putBoolean(VoiceService.KEY_STT_CMD, sttCmd.isChecked)
+            .putString(VoiceService.KEY_STT_URL, "")
+            .putString(VoiceService.KEY_STT_KEY, "")
+            .putBoolean(VoiceService.KEY_STT_CMD, false)
             .putBoolean(Assistant.KEY_CHECKIN, checkinOn.isChecked)
             .putString(AiClient.KEY_FREE_KEY, grokKey.text.toString().trim())
             .putString(AiClient.KEY_FREE_URL, "")
             .putString(AiClient.KEY_FREE_MODEL, "")
-            .putString(Speaker.Config.KEY_URL, ttsUrl.text.toString().trim())
-            .putString(Speaker.Config.KEY_KEY, ttsKey.text.toString().trim())
-            .putString(Speaker.Config.KEY_VOICE, ttsVoice.text.toString().trim())
+            .putString(Speaker.Config.KEY_URL, "")
+            .putString(Speaker.Config.KEY_KEY, "")
+            .putString(Speaker.Config.KEY_VOICE, "")
             .putBoolean(VoiceService.KEY_MSG_ALERTS, msgAlerts.isChecked)
             .apply()
     }
@@ -219,49 +197,6 @@ class MainActivity : AppCompatActivity() {
             }
             runOnUiThread { status.text = msg }
         }.start()
-    }
-
-    /** Inaomba sauti ya jaribio kutoka TTS API yako na kuicheza. */
-    private fun testTts() {
-        saveSettings()
-        if (!Speaker.Config.load(this).enabled) {
-            toast(getString(R.string.tts_need))
-            return
-        }
-        status.text = getString(R.string.tts_testing)
-        testSpeaker?.shutdown()
-        typedHandler?.shutdown()
-        val sp = Speaker(this)
-        testSpeaker = sp
-        sp.test { err ->
-            status.text = if (err == null) getString(R.string.tts_ok) else getString(R.string.tts_failed, err)
-        }
-    }
-
-    /** Inarekodi sekunde chache na kuzituma kwa API yako ili ujue kama mipangilio ni sahihi. */
-    private fun testStt() {
-        saveSettings()
-        val cfg = SpeechInput.Config.load(this)
-        if (!cfg.enabled) {
-            toast(getString(R.string.stt_need))
-            return
-        }
-        if (!micGranted()) {
-            requestPerms()
-            return
-        }
-        // Acha huduma ili maikrofoni iwe huru
-        startService(Intent(this, VoiceService::class.java).setAction(VoiceService.ACTION_STOP))
-        status.text = getString(R.string.stt_testing)
-        val input = SpeechInput(this)
-        testInput = input
-        val lang = if (langEn.isChecked) "en-US" else "sw-TZ"
-        status.postDelayed({
-            input.listenApi(cfg, lang, 10_000L) { text, err ->
-                status.text = if (!text.isNullOrBlank()) getString(R.string.stt_heard, text)
-                else getString(R.string.stt_failed, err ?: "?")
-            }
-        }, 900)
     }
 
     private fun micGranted() =
@@ -303,15 +238,9 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         val trace = Trace.get(this)
         if (trace.isNotBlank()) status.text = getString(R.string.trace_last, trace)
-        val err = prefs.getString(Speaker.Config.KEY_LAST_ERROR, "") ?: ""
-        if (err.isNotBlank() && Speaker.Config.load(this).enabled) {
-            status.text = getString(R.string.tts_last_failed, err)
-        }
     }
 
     override fun onDestroy() {
-        testInput?.cancel()
-        testSpeaker?.shutdown()
         super.onDestroy()
     }
 

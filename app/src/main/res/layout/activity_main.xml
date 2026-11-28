@@ -61,47 +61,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="@string/stt_title"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/stt_hint" />
-
-        <EditText
-            android:id="@+id/sttUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/stt_url_hint"
-            android:importantForAutofill="no"
-            android:inputType="textUri" />
-
-        <EditText
-            android:id="@+id/sttKey"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/stt_key_hint"
-            android:importantForAutofill="no"
-            android:inputType="textPassword" />
-
-        <CheckBox
-            android:id="@+id/sttCmd"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/stt_for_commands" />
-
-        <Button
-            android:id="@+id/sttTestBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/stt_test" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
             android:text="@string/ai_title"
             android:textStyle="bold" />
 
@@ -130,49 +89,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/ai_test" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/tts_title"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/tts_hint" />
-
-        <EditText
-            android:id="@+id/ttsUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/tts_url_hint"
-            android:importantForAutofill="no"
-            android:inputType="textUri" />
-
-        <EditText
-            android:id="@+id/ttsKey"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/tts_key_hint"
-            android:importantForAutofill="no"
-            android:inputType="textPassword" />
-
-        <EditText
-            android:id="@+id/ttsVoice"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/tts_voice_hint"
-            android:importantForAutofill="no"
-            android:inputType="textNoSuggestions" />
-
-        <Button
-            android:id="@+id/ttsTestBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/tts_test" />
 
         <TextView
             android:layout_width="wrap_content"
