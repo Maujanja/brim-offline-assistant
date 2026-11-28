@@ -111,59 +111,19 @@
             android:layout_marginTop="4dp"
             android:text="@string/ai_hint" />
 
-        <EditText
-            android:id="@+id/aiUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/ai_url_hint"
-            android:importantForAutofill="no"
-            android:inputType="textUri" />
+
+
+
+
 
         <EditText
-            android:id="@+id/aiKey"
+            android:id="@+id/grokKey"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/ai_key_hint"
+            android:hint="@string/grok_key_hint"
             android:importantForAutofill="no"
             android:inputType="textPassword" />
 
-        <CheckBox
-            android:id="@+id/aiSautiOff"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="@string/ai_sauti_off" />
-
-        <CheckBox
-            android:id="@+id/aiFree"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="@string/ai_free" />
-
-        <EditText
-            android:id="@+id/aiFreeUrl"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/ai_free_url_hint"
-            android:importantForAutofill="no"
-            android:inputType="textUri" />
-
-        <EditText
-            android:id="@+id/aiFreeKey"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/ai_free_key_hint"
-            android:importantForAutofill="no"
-            android:inputType="textPassword" />
-
-        <EditText
-            android:id="@+id/aiFreeModel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/ai_free_model_hint"
-            android:importantForAutofill="no"
-            android:inputType="textNoSuggestions" />
 
         <Button
             android:id="@+id/aiTestBtn"
@@ -227,11 +187,6 @@
             android:layout_marginTop="4dp"
             android:text="@string/assist_hint" />
 
-        <CheckBox
-            android:id="@+id/aiPrivate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ai_private" />
 
         <CheckBox
             android:id="@+id/checkinOn"

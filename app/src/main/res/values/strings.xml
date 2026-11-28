@@ -19,17 +19,18 @@
     <string name="stt_heard">STT imesikia: %1$s</string>
     <string name="stt_failed">STT imeshindwa: %1$s</string>
 
-    <string name="ai_title">AI ya kuelewa amri (hiari)</string>
-    <string name="ai_hint">Amri isipoeleweka (mfano \"mpigie baba\" au \"niwashie mwanga\"), au jina la mtu likikosa kupatikana kwenye anwani, Msaidizi anaiuliza AI (Sauti API: POST /api/chat) kuelewa. Kwa majina, orodha ya majina ya anwani zako inatumwa kwa seva yako tu wakati huo. Ukiacha tupu, anwani na ufunguo wa TTS vinatumika (ufunguo lazima uwe na ruhusa ya chat). AI yako ikishindwa, na kisanduku cha AI ya bure kikiwa kimewashwa, maneno ya amri na ujumbe wa SMS (si orodha ya anwani) yanatumwa kwa huduma ya umma ya bure; zima kisanduku hicho kama hutaki. Bila AI, utambuzi wa ndani bado unafanya kazi.</string>
+    <string name="ai_title">AI (Grok)</string>
+    <string name="ai_hint">Weka API key yako ya Grok (xAI) hapa, ndiyo AI pekee inayotumika: kuelewa amri, kuzungumza nawe, kujibu kuhusu ujumbe na kutengeneza maswali ya check-in. Ujumbe wa watu halisi na majibu yako vinatumwa kwa xAI; orodha ya anwani zako haitumwi.</string>
     <string name="ai_url_hint">Anwani ya API (mfano https://sauti-tts.vercel.app)</string>
     <string name="ai_key_hint">API key (sk_…)</string>
     <string name="ai_sauti_off">Usitumie AI ya Sauti; tumia AI ya bure tu (ujumbe na majibu yangu vitatumwa kwa huduma hiyo ya umma)</string>
     <string name="ai_free">Tumia AI ya bure (Pollinations) kama yangu haifanyi kazi</string>
     <string name="ai_free_url_hint">AI mbadala: URL ya OpenAI-compatible (acha tupu = Pollinations)</string>
+    <string name="grok_key_hint">API key ya Grok (xai-…)</string>
     <string name="ai_free_key_hint">AI mbadala: key (hiari). Key ya Groq (gsk_…) inatumika moja kwa moja</string>
     <string name="ai_free_model_hint">AI mbadala: modeli (acha tupu = openai)</string>
     <string name="ai_test">Jaribu AI</string>
-    <string name="ai_need">Weka URL na API key (ya AI au ya TTS) kwanza</string>
+    <string name="ai_need">Weka API key ya Grok kwanza</string>
     <string name="ai_testing">Naiuliza AI…</string>
     <string name="ai_ok">AI imeelewa \"mpigie baba\" kama: %1$s</string>
     <string name="ai_failed">AI imeshindwa: %1$s</string>
@@ -50,7 +51,7 @@
     <string name="battery_hint">Chagua \"Ruhusu\" / \"Allow\" ili Android isimzime Msaidizi akiwa nyuma. Kwenye baadhi ya simu (Tecno, Infinix, Xiaomi, Samsung) weka pia Msaidizi kwenye \"Auto-start\" na \"Hakuna vikwazo vya betri\".</string>
 
     <string name="assist_title">Msaidizi kamili (mazungumzo na maswali)</string>
-    <string name="assist_hint">Baada ya wake word unaweza kuongea kawaida, mfano \"leo kulikua na ujumbe gani?\" au \"kuna aliyeomba huduma leo?\". Msaidizi anatumia AI, ujumbe wa watu halisi wa siku 3 na mazungumzo yako ya siku 2. Mara chache kwa siku anakuuliza swali kwa arifa (unajibu kwa sauti au kwa kuandika). Ujumbe na kumbukumbu vinatumwa kwa AI yako ya Sauti tu.</string>
+    <string name="assist_hint">Baada ya wake word unaweza kuongea kawaida, mfano \"leo kulikua na ujumbe gani?\" au \"kuna aliyeomba huduma leo?\". Msaidizi anatumia AI, ujumbe wa watu halisi wa siku 3 na mazungumzo yako ya siku 2. Mara chache kwa siku anakuuliza swali kwa arifa (unajibu kwa sauti au kwa kuandika). Ujumbe na majibu yako vinatumwa kwa Grok (xAI).</string>
     <string name="ai_private">Ruhusu AI ya bure (ya umma) kupokea ujumbe wangu na majibu yangu</string>
     <string name="checkin_on">Msaidizi aniulize maswali mara chache kwa siku</string>
     <string name="checkin_now">Jaribu: niulize swali sasa</string>

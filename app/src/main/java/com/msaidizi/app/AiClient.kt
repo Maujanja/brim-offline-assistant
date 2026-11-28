@@ -34,8 +34,8 @@ object AiClient {
         val enabled get() = url.isNotBlank() && key.isNotBlank()
     }
 
-    fun sautiOff(ctx: Context) =
-        ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SAUTI_OFF, true)
+    /** AI ya Sauti haitumiki tena: AI pekee ni Grok (au huduma ya OpenAI-compatible kwa key hiyo). */
+    fun sautiOff(@Suppress("UNUSED_PARAMETER") ctx: Context) = true
 
     fun config(ctx: Context): Config {
         if (sautiOff(ctx)) return Config("", "")

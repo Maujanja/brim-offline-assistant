@@ -30,15 +30,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sttKey: EditText
     private lateinit var sttCmd: CheckBox
     private lateinit var msgAlerts: CheckBox
-    private lateinit var aiUrl: EditText
-    private lateinit var aiKey: EditText
-    private lateinit var aiFree: CheckBox
-    private lateinit var aiSautiOff: CheckBox
-    private lateinit var aiPrivate: CheckBox
     private lateinit var checkinOn: CheckBox
-    private lateinit var aiFreeUrl: EditText
-    private lateinit var aiFreeKey: EditText
-    private lateinit var aiFreeModel: EditText
+    private lateinit var grokKey: EditText
     private lateinit var ttsUrl: EditText
     private lateinit var ttsKey: EditText
     private lateinit var ttsVoice: EditText
@@ -65,15 +58,8 @@ class MainActivity : AppCompatActivity() {
         sttKey = findViewById(R.id.sttKey)
         sttCmd = findViewById(R.id.sttCmd)
         msgAlerts = findViewById(R.id.msgAlerts)
-        aiUrl = findViewById(R.id.aiUrl)
-        aiKey = findViewById(R.id.aiKey)
-        aiFree = findViewById(R.id.aiFree)
-        aiSautiOff = findViewById(R.id.aiSautiOff)
-        aiPrivate = findViewById(R.id.aiPrivate)
         checkinOn = findViewById(R.id.checkinOn)
-        aiFreeUrl = findViewById(R.id.aiFreeUrl)
-        aiFreeKey = findViewById(R.id.aiFreeKey)
-        aiFreeModel = findViewById(R.id.aiFreeModel)
+        grokKey = findViewById(R.id.grokKey)
         ttsUrl = findViewById(R.id.ttsUrl)
         ttsKey = findViewById(R.id.ttsKey)
         ttsVoice = findViewById(R.id.ttsVoice)
@@ -86,11 +72,6 @@ class MainActivity : AppCompatActivity() {
         sttCmd.isChecked = prefs.getBoolean(VoiceService.KEY_STT_CMD, false)
         msgAlerts.isChecked = prefs.getBoolean(VoiceService.KEY_MSG_ALERTS, true)
 
-        aiUrl.setText(prefs.getString(AiClient.KEY_URL, ""))
-        aiKey.setText(prefs.getString(AiClient.KEY_KEY, ""))
-        aiFree.isChecked = prefs.getBoolean(AiClient.KEY_FREE, true)
-        aiSautiOff.isChecked = prefs.getBoolean(AiClient.KEY_SAUTI_OFF, true)
-        aiPrivate.isChecked = prefs.getBoolean(Assistant.KEY_PRIVATE, false)
         checkinOn.isChecked = prefs.getBoolean(Assistant.KEY_CHECKIN, true)
         findViewById<Button>(R.id.checkinNowBtn).setOnClickListener {
             saveSettings()
@@ -106,9 +87,7 @@ class MainActivity : AppCompatActivity() {
             MessageLog.clear(this)
             toast(getString(R.string.memory_cleared))
         }
-        aiFreeUrl.setText(prefs.getString(AiClient.KEY_FREE_URL, ""))
-        aiFreeKey.setText(prefs.getString(AiClient.KEY_FREE_KEY, ""))
-        aiFreeModel.setText(prefs.getString(AiClient.KEY_FREE_MODEL, ""))
+        grokKey.setText(prefs.getString(AiClient.KEY_FREE_KEY, ""))
         findViewById<Button>(R.id.aiTestBtn).setOnClickListener { testAi() }
         ttsUrl.setText(prefs.getString(Speaker.Config.KEY_URL, ""))
         ttsKey.setText(prefs.getString(Speaker.Config.KEY_KEY, ""))
@@ -199,15 +178,10 @@ class MainActivity : AppCompatActivity() {
             .putString(VoiceService.KEY_STT_URL, sttUrl.text.toString().trim())
             .putString(VoiceService.KEY_STT_KEY, sttKey.text.toString().trim())
             .putBoolean(VoiceService.KEY_STT_CMD, sttCmd.isChecked)
-            .putString(AiClient.KEY_URL, aiUrl.text.toString().trim())
-            .putString(AiClient.KEY_KEY, aiKey.text.toString().trim())
-            .putBoolean(AiClient.KEY_FREE, aiFree.isChecked)
-            .putBoolean(AiClient.KEY_SAUTI_OFF, aiSautiOff.isChecked)
-            .putBoolean(Assistant.KEY_PRIVATE, aiPrivate.isChecked)
             .putBoolean(Assistant.KEY_CHECKIN, checkinOn.isChecked)
-            .putString(AiClient.KEY_FREE_URL, aiFreeUrl.text.toString().trim())
-            .putString(AiClient.KEY_FREE_KEY, aiFreeKey.text.toString().trim())
-            .putString(AiClient.KEY_FREE_MODEL, aiFreeModel.text.toString().trim())
+            .putString(AiClient.KEY_FREE_KEY, grokKey.text.toString().trim())
+            .putString(AiClient.KEY_FREE_URL, "")
+            .putString(AiClient.KEY_FREE_MODEL, "")
             .putString(Speaker.Config.KEY_URL, ttsUrl.text.toString().trim())
             .putString(Speaker.Config.KEY_KEY, ttsKey.text.toString().trim())
             .putString(Speaker.Config.KEY_VOICE, ttsVoice.text.toString().trim())
