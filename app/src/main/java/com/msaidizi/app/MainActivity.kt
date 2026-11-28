@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var aiUrl: EditText
     private lateinit var aiKey: EditText
     private lateinit var aiFree: CheckBox
+    private lateinit var aiSautiOff: CheckBox
     private lateinit var aiPrivate: CheckBox
     private lateinit var checkinOn: CheckBox
     private lateinit var aiFreeUrl: EditText
@@ -67,6 +68,7 @@ class MainActivity : AppCompatActivity() {
         aiUrl = findViewById(R.id.aiUrl)
         aiKey = findViewById(R.id.aiKey)
         aiFree = findViewById(R.id.aiFree)
+        aiSautiOff = findViewById(R.id.aiSautiOff)
         aiPrivate = findViewById(R.id.aiPrivate)
         checkinOn = findViewById(R.id.checkinOn)
         aiFreeUrl = findViewById(R.id.aiFreeUrl)
@@ -87,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         aiUrl.setText(prefs.getString(AiClient.KEY_URL, ""))
         aiKey.setText(prefs.getString(AiClient.KEY_KEY, ""))
         aiFree.isChecked = prefs.getBoolean(AiClient.KEY_FREE, true)
+        aiSautiOff.isChecked = prefs.getBoolean(AiClient.KEY_SAUTI_OFF, true)
         aiPrivate.isChecked = prefs.getBoolean(Assistant.KEY_PRIVATE, false)
         checkinOn.isChecked = prefs.getBoolean(Assistant.KEY_CHECKIN, true)
         findViewById<Button>(R.id.checkinNowBtn).setOnClickListener {
@@ -199,6 +202,7 @@ class MainActivity : AppCompatActivity() {
             .putString(AiClient.KEY_URL, aiUrl.text.toString().trim())
             .putString(AiClient.KEY_KEY, aiKey.text.toString().trim())
             .putBoolean(AiClient.KEY_FREE, aiFree.isChecked)
+            .putBoolean(AiClient.KEY_SAUTI_OFF, aiSautiOff.isChecked)
             .putBoolean(Assistant.KEY_PRIVATE, aiPrivate.isChecked)
             .putBoolean(Assistant.KEY_CHECKIN, checkinOn.isChecked)
             .putString(AiClient.KEY_FREE_URL, aiFreeUrl.text.toString().trim())

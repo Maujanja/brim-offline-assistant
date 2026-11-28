@@ -13,12 +13,15 @@ import java.net.URL
 object AiClient {
     const val KEY_URL = "ai_url"
     const val KEY_KEY = "ai_key"
+    const val KEY_SAUTI_OFF = "ai_sauti_off"   // usitumie AI ya Sauti kabisa; tumia ya bure tu
     const val KEY_FREE = "ai_free"            // tumia AI ya bure ikiwa yangu haifanyi kazi
     const val KEY_FREE_URL = "ai_free_url"
     const val KEY_FREE_KEY = "ai_free_key"
     const val KEY_FREE_MODEL = "ai_free_model"
     const val DEFAULT_FREE_URL = "https://text.pollinations.ai/openai"
     const val DEFAULT_FREE_MODEL = "openai"
+    const val GROQ_URL = "https://api.groq.com/openai/v1"
+    const val GROQ_MODEL = "llama-3.3-70b-versatile"
 
     @Volatile private var sautiDownUntil = 0L
     /** Ya kuonyesha kwenye "Jaribu AI": ni AI ipi iliyojibu mara ya mwisho, na kosa la Sauti kama lipo. */
@@ -29,7 +32,11 @@ object AiClient {
         val enabled get() = url.isNotBlank() && key.isNotBlank()
     }
 
+    fun sautiOff(ctx: Context) =
+        ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SAUTI_OFF, true)
+
     fun config(ctx: Context): Config {
+        if (sautiOff(ctx)) return Config("", "")
         val p = ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE)
         val url = p.getString(KEY_URL, "")!!.trim().ifBlank { p.getString(Speaker.Config.KEY_URL, "")!!.trim() }
         val key = p.getString(KEY_KEY, "")!!.trim().ifBlank { p.getString(Speaker.Config.KEY_KEY, "")!!.trim() }
@@ -45,7 +52,7 @@ Mifano: "mpigie baba" -> piga baba; "mwambie mama kesho nitakuja asubuhi" -> tum
 
     const val CONTACT_CONTEXT = """Unasaidia kutafuta jina kwenye anwani za simu. Mtumiaji alisema jina, na utambuzi wa sauti unaweza kuwa umeliandika vibaya (herufi zinazofanana kama b/p, d/t, g/k, ch/sh/j, l/r, au irabu zilizobadilika). Kutoka kwenye orodha ya anwani, chagua jina MOJA linalosikika karibu zaidi na alichosema. Jibu jina hilo hasa kama lilivyo kwenye orodha, bila maelezo. Kama hakuna linalofanana kwa uhakika, jibu NONE."""
 
-    private fun freeOn(ctx: Context) =
+    private fun freeOn(ctx: Context) = sautiOff(ctx) ||
         ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE).getBoolean(KEY_FREE, true)
 
     /** AI yoyote ipo (yangu au ya bure)? */
@@ -79,12 +86,14 @@ Mifano: "mpigie baba" -> piga baba; "mwambie mama kesho nitakuja asubuhi" -> tum
 
     private fun askFree(ctx: Context, context: String, message: String): String {
         val p = ctx.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE)
-        var u = p.getString(KEY_FREE_URL, "")!!.trim().ifBlank { DEFAULT_FREE_URL }
+        val key = p.getString(KEY_FREE_KEY, "")!!.trim()
+        // Ufunguo wa Groq (gsk_…) bila URL: tumia Groq moja kwa moja
+        val groq = key.startsWith("gsk_") && p.getString(KEY_FREE_URL, "")!!.isBlank()
+        var u = p.getString(KEY_FREE_URL, "")!!.trim().ifBlank { if (groq) GROQ_URL else DEFAULT_FREE_URL }
         if (!u.startsWith("http://") && !u.startsWith("https://")) u = "https://$u"
         u = u.trimEnd('/')
         val endpoint = if (u.endsWith("/chat/completions") || u.endsWith("/openai")) u else "$u/chat/completions"
-        val key = p.getString(KEY_FREE_KEY, "")!!.trim()
-        val model = p.getString(KEY_FREE_MODEL, "")!!.trim().ifBlank { DEFAULT_FREE_MODEL }
+        val model = p.getString(KEY_FREE_MODEL, "")!!.trim().ifBlank { if (groq) GROQ_MODEL else DEFAULT_FREE_MODEL }
         val body = JSONObject()
             .put("model", model)
             .put("temperature", 0.2)

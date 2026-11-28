@@ -32,7 +32,7 @@ object Assistant {
     private fun prefs(ctx: Context) = ctx.applicationContext.getSharedPreferences(VoiceService.PREFS, Context.MODE_PRIVATE)
 
     /** AI ya bure ya umma imeruhusiwa kupokea data binafsi? */
-    fun freeAllowed(ctx: Context) = prefs(ctx).getBoolean(KEY_PRIVATE, false)
+    fun freeAllowed(ctx: Context) = AiClient.sautiOff(ctx) || prefs(ctx).getBoolean(KEY_PRIVATE, false)
 
     /** Mazungumzo yanawezekana: AI yako ya Sauti imewekwa, au umeruhusu ya bure. */
     fun chatReady(ctx: Context) = AiClient.config(ctx).enabled || (freeAllowed(ctx) && AiClient.available(ctx))

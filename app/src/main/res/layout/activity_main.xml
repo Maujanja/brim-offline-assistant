@@ -128,6 +128,13 @@
             android:inputType="textPassword" />
 
         <CheckBox
+            android:id="@+id/aiSautiOff"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/ai_sauti_off" />
+
+        <CheckBox
             android:id="@+id/aiFree"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
