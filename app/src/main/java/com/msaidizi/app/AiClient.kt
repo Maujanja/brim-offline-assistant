@@ -22,6 +22,8 @@ object AiClient {
     const val DEFAULT_FREE_MODEL = "openai"
     const val GROQ_URL = "https://api.groq.com/openai/v1"
     const val GROQ_MODEL = "llama-3.3-70b-versatile"
+    const val XAI_URL = "https://api.x.ai/v1"
+    @Volatile private var xaiModel: String? = null
 
     @Volatile private var sautiDownUntil = 0L
     /** Ya kuonyesha kwenye "Jaribu AI": ni AI ipi iliyojibu mara ya mwisho, na kosa la Sauti kama lipo. */
@@ -89,11 +91,14 @@ Mifano: "mpigie baba" -> piga baba; "mwambie mama kesho nitakuja asubuhi" -> tum
         val key = p.getString(KEY_FREE_KEY, "")!!.trim()
         // Ufunguo wa Groq (gsk_…) bila URL: tumia Groq moja kwa moja
         val groq = key.startsWith("gsk_") && p.getString(KEY_FREE_URL, "")!!.isBlank()
-        var u = p.getString(KEY_FREE_URL, "")!!.trim().ifBlank { if (groq) GROQ_URL else DEFAULT_FREE_URL }
+        // Ufunguo wa xAI Grok (xai-…) bila URL: tumia xAI moja kwa moja
+        val xai = key.startsWith("xai-") && p.getString(KEY_FREE_URL, "")!!.isBlank()
+        var u = p.getString(KEY_FREE_URL, "")!!.trim().ifBlank { if (groq) GROQ_URL else if (xai) XAI_URL else DEFAULT_FREE_URL }
         if (!u.startsWith("http://") && !u.startsWith("https://")) u = "https://$u"
         u = u.trimEnd('/')
         val endpoint = if (u.endsWith("/chat/completions") || u.endsWith("/openai")) u else "$u/chat/completions"
-        val model = p.getString(KEY_FREE_MODEL, "")!!.trim().ifBlank { if (groq) GROQ_MODEL else DEFAULT_FREE_MODEL }
+        val model = p.getString(KEY_FREE_MODEL, "")!!.trim()
+            .ifBlank { if (groq) GROQ_MODEL else if (xai) xaiModel(key) else DEFAULT_FREE_MODEL }
         val body = JSONObject()
             .put("model", model)
             .put("temperature", 0.2)
@@ -124,6 +129,30 @@ Mifano: "mpigie baba" -> piga baba; "mwambie mama kesho nitakuja asubuhi" -> tum
                 text.takeIf { it.isNotBlank() && !it.trimStart().startsWith("{") }
                     ?: throw RuntimeException("AI ya bure imerudisha jibu lisilojulikana")
             }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /** xAI: chagua modeli ya maandishi ya haraka kutoka kwenye orodha ya akaunti yako (majina hubadilika). */
+    private fun xaiModel(key: String): String {
+        xaiModel?.let { return it }
+        val conn = URL("$XAI_URL/models").openConnection() as HttpURLConnection
+        try {
+            conn.connectTimeout = 8000
+            conn.readTimeout = 10000
+            conn.setRequestProperty("Authorization", "Bearer $key")
+            if (conn.responseCode !in 200..299) throw RuntimeException("xAI models ${conn.responseCode}")
+            val arr = JSONObject(conn.inputStream.bufferedReader().readText()).getJSONArray("data")
+            val ids = (0 until arr.length()).map { arr.getJSONObject(it).getString("id") }
+                .filter { id -> listOf("image", "imagine", "video", "vision", "embed").none { id.contains(it) } }
+            val pick = ids.firstOrNull { it.contains("fast") && !it.contains("reasoning") }
+                ?: ids.firstOrNull { it.contains("fast") }
+                ?: ids.firstOrNull { it.contains("mini") }
+                ?: ids.firstOrNull { it.startsWith("grok") }
+                ?: throw RuntimeException("xAI: hakuna modeli")
+            xaiModel = pick
+            return pick
         } finally {
             conn.disconnect()
         }
